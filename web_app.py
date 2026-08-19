@@ -370,7 +370,6 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
         "🗑️ 刪除保單"
     ])
 
-    # ====== 1. 建立全新保單 ======
     with tab_batch:
         if current_count >= MAX_DEMO_POLICIES:
             st.warning(f"🔒 **體驗版額度已滿（{current_count}/{MAX_DEMO_POLICIES} 筆）**\n\n目前已達到試用體驗上限 3 筆保單。如需解鎖無限保單建檔、家庭整合模型與全功能健診模組，請洽 **Jenny CFP®**。")
@@ -422,7 +421,6 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                     main_company = st.text_input("請輸入其他保險公司名稱 *", key="main_comp_custom") if m_comp_sel == "其他保險公司" else m_comp_sel
                     main_policy_no = st.text_input("保單號碼 *", placeholder="例：0008899123", key="main_pno")
                     
-                    # 依選擇的保險公司動態連動主約選單
                     avail_mains = COMPANY_PRODUCTS_DB.get(m_comp_sel, {}).get("mains", ["✍️ 自行輸入其他商品/代碼"])
                     main_pname_choice = st.selectbox("主約商品名稱 / 代碼 *", avail_mains, key=f"main_pchoice_{m_comp_sel}")
                     if main_pname_choice == "✍️ 自行輸入其他商品/代碼":
@@ -786,10 +784,13 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
                 new_c_phone = st.text_input("聯絡電話", key="car_new_phone")
             with col4:
                 new_c_family = st.text_input("家庭群組代號", key="car_new_fam")
+            selected_car_bdate = birth_input
         else:
             c_opts = dict(zip(clients['name'] + " (ID: " + clients['client_id'].astype(str) + ")", clients['client_id']))
             sel_k = st.selectbox("選擇現有客戶：", list(c_opts.keys()), key="car_sel_client")
             c_id = c_opts[sel_k]
+            c_row = clients[clients['client_id'] == c_id].iloc[0]
+            selected_car_bdate = pd.to_datetime(c_row['birth_date']).date() if pd.notna(c_row['birth_date']) else date(1990, 1, 1)
 
         market_car_options = [
             "汽車乙式全險 (車體險+第三責任+超額險+駕傷險)",
@@ -835,7 +836,7 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
                         st.error("請輸入客戶姓名！")
                         st.stop()
                     cur = conn.cursor()
-                    cur.execute("INSERT INTO clients (name, birth_date, phone, family_id) VALUES (?, ?, ?, ?)", (new_c_name.strip(), new_c_birth, new_c_phone.strip(), new_c_family.strip()))
+                    cur.execute("INSERT INTO clients (name, birth_date, phone, family_id) VALUES (?, ?, ?, ?)", (new_c_name.strip(), selected_car_bdate.strftime("%Y-%m-%d"), new_c_phone.strip(), new_c_family.strip()))
                     c_id = cur.lastrowid
 
                 if not company.strip() or not policy_no.strip() or not final_plan_name.strip():
@@ -1008,13 +1009,13 @@ elif menu == "📊 精準條款健診與理賠情境試算":
             )
     conn.close()
 
-# ==================== 模組 4: 到期排程儀表板 ====================
+# ==================== 模組 4: 續期與車險到期排程儀表板 (壽險/產險分類) ====================
 elif menu == "🔔 續期/車險到期排程儀表板":
-    st.header("🔔 續期／車險到期排程儀表板 (T-45 / T-30 / T-7)")
+    st.header("🔔 續期應繳與產險到期排程儀表板 (分流管理)")
     conn = get_conn()
     df = pd.read_sql_query("""
     SELECT p.policy_id, c.name AS '客戶姓名', c.phone AS '電話', p.company AS '保險公司', 
-           p.policy_name AS '險種名稱', p.policy_type AS '險種分類', 
+           p.policy_no AS '保單號碼', p.policy_name AS '險種名稱', p.policy_type AS '險種分類', p.is_main AS '架構',
            p.next_due_date AS '下次繳費日', p.expiry_date AS '到期日', p.premium AS '保費', p.payment_method AS '繳費方式'
     FROM policies p
     JOIN clients c ON p.client_id = c.client_id
@@ -1024,8 +1025,43 @@ elif menu == "🔔 續期/車險到期排程儀表板":
     if df.empty:
         st.info("💡 目前尚無保單資料。")
     else:
-        st.subheader("📋 所有有效保單繳費與滿期排程清單")
-        st.dataframe(df, use_container_width=True)
+        # 分流：產險/車險 vs 壽險/人身險
+        car_df = df[df['險種分類'] == '車險'].copy()
+        life_df = df[(df['險種分類'] != '車險') & (df['架構'] != '📎 附約')].copy() # 壽險續期以主約為準
+
+        tab_life_due, tab_car_due = st.tabs([
+            "📑 壽險續期保費應繳排程",
+            "🚗 產險 / 車險續保到期排程 (T-45/T-30/T-7)"
+        ])
+
+        with tab_life_due:
+            st.subheader("📑 人身壽險／儲蓄／醫療續期繳費排程")
+            if life_df.empty:
+                st.info("目前無壽險主約繳費排程。")
+            else:
+                total_life_prem = life_df['保費'].sum()
+                st.metric("💰 壽險年度應繳總保費", f"{total_life_prem:,.0f} 元")
+                st.dataframe(life_df[['客戶姓名', '電話', '保險公司', '保單號碼', '險種名稱', '下次繳費日', '保費', '繳費方式']], use_container_width=True)
+
+        with tab_car_due:
+            st.subheader("🚗 產險／車險年度到期與續保排程")
+            if car_df.empty:
+                st.info("目前無產險／車險保單。")
+            else:
+                today = date.today()
+                car_df['到期日_date'] = pd.to_datetime(car_df['到期日']).dt.date
+                car_df['剩餘天數'] = (car_df['到期日_date'] - today).apply(lambda x: x.days)
+
+                t7 = len(car_df[(car_df['剩餘天數'] >= 0) & (car_df['剩餘天數'] <= 7)])
+                t30 = len(car_df[(car_df['剩餘天數'] > 7) & (car_df['剩餘天數'] <= 30)])
+                t45 = len(car_df[(car_df['剩餘天數'] > 30) & (car_df['剩餘天數'] <= 45)])
+
+                col1, col2, col3 = st.columns(3)
+                col1.metric("🚨 T-7 緊急追蹤 (7天內)", f"{t7} 筆")
+                col2.metric("📢 T-30 續保通知 (30天內)", f"{t30} 筆")
+                col3.metric("📝 T-45 試算準備 (45天內)", f"{t45} 筆")
+
+                st.dataframe(car_df[['客戶姓名', '電話', '保險公司', '保單號碼', '險種名稱', '到期日', '剩餘天數', '保費', '繳費方式']].sort_values('剩餘天數'), use_container_width=True)
 
 # ==================== 模組 5: 客戶名單管理 ====================
 elif menu == "👥 客戶名單管理":
