@@ -100,7 +100,8 @@ def calculate_rider_expiry(birth_d, max_age):
     except ValueError:
         return date(exp_year, birth_d.month, 28).strftime("%Y-%m-%d")
 
-def init_and_migrate_db():
+# 確保資料庫與所有必要欄位百分之百完整建立
+def init_db():
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS clients (client_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, birth_date TEXT, phone TEXT, family_id TEXT)")
@@ -108,7 +109,7 @@ def init_and_migrate_db():
         c.execute("CREATE TABLE IF NOT EXISTS policy_benefits (benefit_id INTEGER PRIMARY KEY AUTOINCREMENT, policy_id INTEGER, category TEXT, sum_assured REAL, sum_assured_unit TEXT DEFAULT '萬元', plan_unit_name TEXT DEFAULT '', outpatient_limit REAL, has_227_clause TEXT, receipt_type TEXT, clause_details TEXT, FOREIGN KEY (policy_id) REFERENCES policies (policy_id))")
         conn.commit()
 
-init_and_migrate_db()
+init_db()
 
 def get_total_policy_count():
     try:
@@ -167,15 +168,14 @@ with st.sidebar:
     current_count = get_total_policy_count()
     st.info(f"📋 **目前已建檔保單**：`{current_count} / {MAX_DEMO_POLICIES} 筆`")
 
-    if current_count > 0:
-        if st.button("🔄 清空體驗資料庫"):
-            with get_conn() as conn:
-                conn.execute("DELETE FROM policy_benefits")
-                conn.execute("DELETE FROM policies")
-                conn.execute("DELETE FROM clients")
-                conn.commit()
-            st.success("✅ 已清空！")
-            st.rerun()
+    if st.button("🔄 清空體驗資料庫"):
+        with get_conn() as conn:
+            conn.execute("DELETE FROM policy_benefits")
+            conn.execute("DELETE FROM policies")
+            conn.execute("DELETE FROM clients")
+            conn.commit()
+        st.success("✅ 已清空！")
+        st.rerun()
 
     menu = st.radio("功能模組導航", [
         "📝 主約+附約體系建檔",
