@@ -26,6 +26,135 @@ DB_NAME = "client_vault.db"
 MAX_DEMO_POLICIES = 3  # 體驗版最大保單上限
 REGULATION_CUTOFF_DATE = "2024-07-01"  # 實支實付損害填補新制法規分水嶺
 
+# 台灣主要壽險公司的主力主約與附約商品清單
+COMPANY_PRODUCTS_DB = {
+    "全球人壽": {
+        "mains": [
+            "QWX 終身壽險", "DCE 醫卡讚重大傷病終身健康保險", 
+            "QTL 幸福定期壽險", "XDJ 臻愛久久重大傷病定期健康保險",
+            "XTG 臻愛久久防癌終身健康保險", "美利發增額終身壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "XHR 醫療費用健康保險附約", "XHD 實在醫靠醫療健康保險附約", 
+            "XHB 實在醫靠醫療健康保險附約", "XDE 醫護重大傷病健康保險附約", 
+            "XTC 臻幸福防癌定期健康保險附約", "MIR 傷害保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "台灣人壽": {
+        "mains": [
+            "T02H0 福滿人生終身壽險", "T08F0 傳富安心重大傷病定期健康保險", 
+            "OTL1 珍好命一年定期壽險", "T04V2 傳富滿滿終身壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "HNRC 新住院醫療保險附約", "HNRB 新住院醫療保險附約", 
+            "HNRD 自負額住院醫療健康保險附約", "CIR4 金安心卡順利重大傷病健康保險附約", 
+            "YCD 愛無慮防癌一次金保險附約", "YHB 新住院醫療定額健康保險附約", 
+            "SPAR 長安傷害保險附約", "BX0 實質效益傷害醫療保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "富邦人壽": {
+        "mains": [
+            "XWS 終身壽險", "XLT 金安順重大傷病定期健康保險", 
+            "SWB 鑫富利增額終身壽險", "EHI 享安心住院醫療定額主約",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "HS 新綜合住院醫療保險附約", "HSG 長順住院醫療健康保險附約", 
+            "HSN 佳順住院醫療健康保險附約", "HKR 防癌定期健康保險附約", 
+            "PCC 防癌終身健康保險附約", "ADC 日額意外傷害保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "國泰人壽": {
+        "mains": [
+            "L65 鑫彩終身壽險", "UB 鍾心滿滿重大傷病定期保險", 
+            "B65 增美利終身壽險", "L3 萬代福終身壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "CV 新真全意住院醫療健康保險附約", "CV1 真全意住院醫療健康保險附約", 
+            "CV2 實全心意住院醫療健康保險附約", "ZV 金骨力傷害保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "南山人壽": {
+        "mains": [
+            "NNPL 新終身壽險", "CAB 護您久久防癌終身健康保險", 
+            "1CR 康祥重大疾病終身健康保險", "美滿發增額終身壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "1HIR 住院醫療保險附約", "HS 住院醫療保險附約", 
+            "HSI 好醫靠住院醫療健康保險附約", "PAR 新人身意外傷害保險附約", 
+            "DHI 意外傷害日額附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "遠雄人壽": {
+        "mains": [
+            "FI1 傳富新世代終身壽險", "MB1 美滿富貴終身壽險", 
+            "FX7 終身壽險", "HG4 金好心終身健康保險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "RJ1 康富醫療健康保險附約", "RM1 永康醫療健康保險附約", 
+            "RM2 永康自負額醫療附約", "CJ1 愛家安心防癌健康保險附約", 
+            "XCD 一年定期防癌健康保險附約", "RHA 超好心傷害保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "新光人壽": {
+        "mains": [
+            "DNA 珍愛健康終身壽險", "E2 傳家寶終身壽險", 
+            "長金倍發終身壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "C1 安心住院醫療保險附約", "U1 好全方位傷害保險附約", 
+            "V1 好全方位傷害醫療保險附約(實支)",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "凱基人壽(中國)": {
+        "mains": [
+            "LEGO 金康泰專案主約", "MAJOTA 傳富終身壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "LEGOTA 金康泰住院醫療健康保險附約", "MAJOTA 超康泰自負額住院醫療健康保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "安聯人壽": {
+        "mains": [
+            "WS 萬世福終身壽險", "WL 卓越人生變額萬能壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "TL0 一年定期壽險附約", "DR 一年定期重大疾病健康保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "宏泰人壽": {
+        "mains": [
+            "FCB 觀音防癌終身健康保險", "宏運發終身壽險",
+            "✍️ 自行輸入其他商品/代碼"
+        ],
+        "riders": [
+            "HSA 薰衣草醫療健康保險附約",
+            "✍️ 自行輸入其他附約/代碼"
+        ]
+    },
+    "其他保險公司": {
+        "mains": ["✍️ 自行輸入其他商品/代碼"],
+        "riders": ["✍️ 自行輸入其他附約/代碼"]
+    }
+}
+
 def get_conn():
     return sqlite3.connect(DB_NAME)
 
@@ -221,11 +350,7 @@ with st.sidebar:
         "👥 客戶名單管理"
     ])
 
-company_options = [
-    "全球人壽", "台灣人壽", "富邦人壽", "國泰人壽", "南山人壽", 
-    "遠雄人壽", "新光人壽", "凱基人壽(中國)", "安聯人壽", 
-    "宏泰人壽", "三商美邦", "保誠人壽", "安達人壽", "其他保險公司"
-]
+company_list = list(COMPANY_PRODUCTS_DB.keys())
 all_ptypes = ["壽險保障", "儲蓄/分紅/年金", "醫療實支", "重大傷病", "癌症一次金", "日額/定額醫療", "個人意外險", "失能照護"]
 all_cats = ["壽險責任", "資產儲蓄", "實支醫療", "重大傷病", "防癌一次金", "日額定額", "意外傷害", "失能照護"]
 all_units = ["萬元 (保額/滿期金)", "計畫 (實支/XHD等)", "元/日 (日額/住院)", "單位 (手術/防癌)", "自訂"]
@@ -287,16 +412,24 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                     st.info(f"👤 客戶：**{client_row['name']}** ｜ 生日：**{client_row['birth_date']}** ｜ 目前年齡：**{calculate_age(selected_client_birth)} 歲**")
 
             st.markdown("---")
-            st.subheader("2. 填寫【保單主約】核心資料")
+            st.subheader("2. 填寫【保單主約】核心資料 (連動商品名稱選單)")
 
             with st.container():
                 st.markdown("### 👑 保單主約核心資訊")
                 col_m1, col_m2 = st.columns(2)
                 with col_m1:
-                    m_comp_sel = st.selectbox("保險公司 *", company_options, key="main_comp_sel")
-                    main_company = st.text_input("請輸入保險公司名稱 *", key="main_comp_custom") if m_comp_sel == "其他保險公司" else m_comp_sel
+                    m_comp_sel = st.selectbox("保險公司 *", company_list, key="main_comp_sel")
+                    main_company = st.text_input("請輸入其他保險公司名稱 *", key="main_comp_custom") if m_comp_sel == "其他保險公司" else m_comp_sel
                     main_policy_no = st.text_input("保單號碼 *", placeholder="例：0008899123", key="main_pno")
-                    main_policy_name = st.text_input("主約商品名稱 / 代碼 *", placeholder="例：QWX 終身壽險 / 美利發增額終身壽險", key="main_pname")
+                    
+                    # 依選擇的保險公司動態連動主約選單
+                    avail_mains = COMPANY_PRODUCTS_DB.get(m_comp_sel, {}).get("mains", ["✍️ 自行輸入其他商品/代碼"])
+                    main_pname_choice = st.selectbox("主約商品名稱 / 代碼 *", avail_mains, key=f"main_pchoice_{m_comp_sel}")
+                    if main_pname_choice == "✍️ 自行輸入其他商品/代碼":
+                        main_policy_name = st.text_input("請手動輸入主約商品名稱/代碼 *", placeholder="例：美利發增額終身壽險", key="main_pname_custom")
+                    else:
+                        main_policy_name = main_pname_choice
+
                     main_policy_type = st.selectbox("主約險種屬性", all_ptypes, key="main_ptype")
                 with col_m2:
                     col_md1, col_md2 = st.columns(2)
@@ -348,12 +481,19 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                         st.rerun()
 
             riders_data = []
+            avail_riders = COMPANY_PRODUCTS_DB.get(m_comp_sel, {}).get("riders", ["✍️ 自行輸入其他附約/代碼"])
+
             for r in range(st.session_state.rider_form_count):
                 with st.container():
                     st.markdown(f"#### 📎 附約項目 #{r+1} (依附於主約：{main_policy_name or '未填寫'})")
                     col_r1, col_r2 = st.columns(2)
                     with col_r1:
-                        r_name = st.text_input(f"附約名稱 / 代碼 * (#{r+1})", key=f"r_name_{r}", placeholder="例：XHR 醫療費用健康保險附約 / XDE 重大傷病")
+                        r_pname_choice = st.selectbox(f"附約名稱 / 代碼 * (#{r+1})", avail_riders, key=f"r_choice_{m_comp_sel}_{r}")
+                        if r_pname_choice == "✍️ 自行輸入其他附約/代碼":
+                            r_name = st.text_input(f"請手動輸入附約名稱/代碼 * (#{r+1})", placeholder="例：XHR 醫療費用健康保險附約", key=f"r_name_custom_{r}")
+                        else:
+                            r_name = r_pname_choice
+
                         r_type = st.selectbox(f"險種屬性 (#{r+1})", all_ptypes, index=2, key=f"r_type_{r}")
                         r_cat = st.selectbox(f"健診歸屬類別 (#{r+1})", all_cats, index=2, key=f"r_cat_{r}")
                         col_ra1, col_ra2 = st.columns(2)
@@ -442,7 +582,7 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
 
     # ====== 2. 為現有主約追加附約 ======
     with tab_add_rider:
-        st.subheader("📎 為現有已建立的【主約保單】追加新附約")
+        st.subheader("📎 為現有已建立的【主約保單】追加新附約 (支援保司商品連動)")
         main_policies_df = pd.read_sql_query("""
         SELECT p.policy_id, p.client_id, c.name AS client_name, c.birth_date, p.company, p.policy_no, p.policy_name, p.start_date, p.pay_frequency, p.payment_method
         FROM policies p
@@ -463,12 +603,20 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
             target_main_row = main_policies_df[main_policies_df['policy_id'] == p_opts[sel_target_p]].iloc[0]
 
             c_bdate_obj = pd.to_datetime(target_main_row['birth_date']).date() if pd.notna(target_main_row['birth_date']) else date(1990, 1, 1)
+            target_comp = target_main_row['company']
 
-            st.info(f"📌 將加掛於：**{target_main_row['client_name']}** 的 **{target_main_row['company']}** (保單號：`{target_main_row['policy_no']}`) ｜ 生效日：`{target_main_row['start_date']}`")
+            st.info(f"📌 將加掛於：**{target_main_row['client_name']}** 的 **{target_comp}** (保單號：`{target_main_row['policy_no']}`) ｜ 生效日：`{target_main_row['start_date']}`")
+
+            avail_target_riders = COMPANY_PRODUCTS_DB.get(target_comp, {}).get("riders", ["✍️ 自行輸入其他附約/代碼"])
 
             col_ar1, col_ar2 = st.columns(2)
             with col_ar1:
-                add_r_name = st.text_input("追加附約名稱 / 代碼 *", placeholder="例：XHR 醫療費用健康保險附約 / XDE 重大傷病", key="add_r_name")
+                add_r_choice = st.selectbox("追加附約名稱 / 代碼 *", avail_target_riders, key=f"add_r_sel_{target_comp}")
+                if add_r_choice == "✍️ 自行輸入其他附約/代碼":
+                    add_r_name = st.text_input("請手動輸入附約名稱/代碼 *", placeholder="例：XHR 醫療費用健康保險附約", key="add_r_name_custom")
+                else:
+                    add_r_name = add_r_choice
+
                 add_r_type = st.selectbox("險種屬性", all_ptypes, index=2, key="add_r_type")
                 add_r_cat = st.selectbox("健診歸屬類別", all_cats, index=2, key="add_r_cat")
                 col_ara1, col_ara2 = st.columns(2)
