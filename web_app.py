@@ -84,6 +84,10 @@ def init_and_migrate_db():
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN receipt_type TEXT DEFAULT '可副本'")
         if "clause_details" not in columns:
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN clause_details TEXT DEFAULT ''")
+        if "sum_assured_unit" not in columns:
+            conn.execute("ALTER TABLE policy_benefits ADD COLUMN sum_assured_unit TEXT DEFAULT '萬元'")
+        if "plan_unit_name" not in columns:
+            conn.execute("ALTER TABLE policy_benefits ADD COLUMN plan_unit_name TEXT DEFAULT ''")
             
         conn.commit()
 
@@ -94,6 +98,45 @@ def get_total_policy_count():
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM policies")
         return cur.fetchone()[0]
+
+def parse_policy_with_ai(api_key, text_query):
+    if not HAS_GENAI:
+        return None, "系統尚未安裝 google-generativeai 套件"
+    if not api_key:
+        return None, "請先於左側邊欄輸入有效的 Gemini API Key"
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"""
+        你是一位台灣保險市場專業 CFP® 與核保理賠顧問。
+        請根據使用者輸入的保單代碼、險種名稱或商品簡稱：「{text_query}」，解析該商品的市場真實條款與規格。
+        
+        請嚴格輸出純 JSON 格式（不要有 markdown 區塊外的文字），包含以下欄位：
+        {{
+            "company": "保險公司名稱（例：全球人壽 / 台灣人壽 / 國泰人壽 / 富邦人壽 / 南山人壽）",
+            "policy_name": "完整主附約名稱（包含代號與中文全名）",
+            "policy_type": "險種屬性，必須從以下選一：醫療實支、壽險保障、儲蓄/分紅/年金、重大傷病、癌症一次金、日額/定額醫療、個人意外險、失能照護",
+            "category": "健診歸屬類別，必須從以下選一：實支醫療、壽險責任、資產儲蓄、重大傷病、防癌一次金、日額定額、意外傷害、失能照護",
+            "unit_label": "計價形式，必須從以下選一：萬元 (保額/滿期金)、計畫 (實支/XHD等)、元/日 (日額/住院)、單位 (手術/防癌)",
+            "sum_val": 預估額度數值（數值浮點數，如計畫二填2、日額1000填1000、保額100萬填100，未知填0）,
+            "plan_note": "計畫別或規格說明（例：計畫二 (住院雜費20萬/門診手術4萬)）",
+            "outpatient_limit": 門診手術/雜費上限（萬元，數值浮點數，無則填0.0）,
+            "has_227": "是否有限制健保2-2-7手術？必須為：是、否、不適用",
+            "receipt_type": "理賠收據規範？必須為：可副本、限正本、不適用",
+            "clause_details": "條款精華摘要（包含住院限額、門診限制、處置備註或預定利率）"
+        }}
+        """
+        response = model.generate_content(prompt)
+        txt = response.text.strip()
+        if txt.startswith("```json"):
+            txt = txt[7:]
+        if txt.startswith("```"):
+            txt = txt[3:]
+        if txt.endswith("```"):
+            txt = txt[:-3]
+        return json.loads(txt.strip()), None
+    except Exception as e:
+        return None, f"AI 解析失敗：{str(e)}"
 
 # ==================== 側邊欄：客製化專屬品牌識別 ====================
 with st.sidebar:
@@ -150,7 +193,7 @@ with st.sidebar:
             st.success("✅ 體驗資料已清空，可重新輸入 3 筆！")
             st.rerun()
 
-    api_key = st.text_input("🔑 Gemini API Key (選填/智慧條款檢索)", type="password")
+    api_key = st.text_input("🔑 Gemini API Key (智慧條款代碼解析)", type="password")
 
     menu = st.radio("功能模組導航", [
         "📝 壽險/全險種批次建檔 (體驗版限3筆)",
@@ -181,6 +224,29 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
             remaining = MAX_DEMO_POLICIES - current_count
             st.success(f"✨ 體驗版目前尚可建立 **{remaining}** 筆保單。")
             
+            # 智慧 AI 條款自動解析助理
+            with st.expander("🤖 點此展開【AI 智慧條款與險種代碼自動帶入】(支援 XHD / HNRC / 停售商品等)", expanded=True):
+                st.caption("輸入代碼或險種名稱（如：`全球 XHD 計畫二` 或 `台壽 HNRC 計畫三`），AI 將自動聯網抓取精確條款、2-2-7 限制與門診額度！")
+                col_ai_in, col_ai_btn = st.columns([4, 2])
+                with col_ai_in:
+                    ai_input_query = st.text_input("輸入保險公司 / 商品代碼 / 計畫別：", placeholder="例：全球人壽 XHD 計畫二 / 富邦人壽 HS 計畫C", key="ai_search_query")
+                with col_ai_btn:
+                    st.write("")
+                    st.write("")
+                    btn_run_ai = st.button("🔍 AI 智慧辨識並帶入")
+
+                if btn_run_ai:
+                    if not ai_input_query.strip():
+                        st.error("請輸入要查詢的保單代碼或險種名稱！")
+                    else:
+                        with st.spinner("🤖 正在聯網比對市場條款資料庫與 2-2-7 限制規範..."):
+                            parsed_data, err = parse_policy_with_ai(api_key, ai_input_query.strip())
+                            if err:
+                                st.error(err)
+                            elif parsed_data:
+                                st.session_state.ai_preset = parsed_data
+                                st.success(f"🎉 成功識別【{parsed_data.get('company')} - {parsed_data.get('policy_name')}】！已自動帶入下方表單。")
+
             st.subheader("1. 選擇或輸入客戶資訊")
             if not clients.empty:
                 c_mode = st.radio("客戶來源：", ["✍️ 直接打新客戶名字", "🔍 選擇現有客戶"], horizontal=True, key="life_c_mode")
@@ -224,19 +290,36 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
 
             st.write(f"目前將為該客戶建立 **{st.session_state.policy_form_count}** 張保單／附約項目：")
 
+            preset = st.session_state.get("ai_preset", {})
+
             with st.form("batch_policies_form"):
                 policies_data = []
 
                 for i in range(st.session_state.policy_form_count):
                     st.markdown(f"#### 📄 保單／附約項目 #{i+1}")
+                    
+                    # 若第一筆有 AI 帶入預設值
+                    def_comp = preset.get("company", "") if i == 0 else ""
+                    def_pname = preset.get("policy_name", "") if i == 0 else ""
+                    def_ptype = preset.get("policy_type", "醫療實支") if i == 0 else "醫療實支"
+                    def_cat = preset.get("category", "實支醫療") if i == 0 else "實支醫療"
+                    def_unit = preset.get("unit_label", "計畫 (實支/XHD等)") if i == 0 else "萬元 (保額/滿期金)"
+                    def_sum = float(preset.get("sum_val", 0.0)) if i == 0 else 0.0
+                    def_plan_note = preset.get("plan_note", "") if i == 0 else ""
+                    def_out = float(preset.get("outpatient_limit", 0.0)) if i == 0 else 0.0
+                    def_227 = preset.get("has_227", "否") if i == 0 else "否"
+                    def_rec = preset.get("receipt_type", "可副本") if i == 0 else "可副本"
+                    def_det = preset.get("clause_details", "") if i == 0 else ""
+
                     col_p1, col_p2 = st.columns(2)
                     with col_p1:
-                        company = st.text_input(f"保險公司 * (#{i+1})", key=f"comp_{i}", placeholder="例：全球人壽 / 國泰人壽 / 富邦人壽 / 南山人壽")
+                        company = st.text_input(f"保險公司 * (#{i+1})", value=def_comp, key=f"comp_{i}", placeholder="例：全球人壽 / 國泰人壽 / 富邦人壽 / 南山人壽")
                         policy_no = st.text_input(f"保單號碼 * (#{i+1})", key=f"pno_{i}", placeholder="例：0008899123")
-                        policy_name = st.text_input(f"主附約名稱 * (#{i+1})", key=f"pname_{i}", placeholder="例：實在醫靠醫療健康附約 / 美利發增額終身壽險")
-                        policy_type = st.selectbox(f"險種屬性 (#{i+1})", [
-                            "醫療實支", "壽險保障", "儲蓄/分紅/年金", "重大傷病", "癌症一次金", "日額/定額醫療", "個人意外險", "失能照護"
-                        ], key=f"ptype_{i}")
+                        policy_name = st.text_input(f"主附約名稱 / 代碼 * (#{i+1})", value=def_pname, key=f"pname_{i}", placeholder="例：XHD 實在醫靠醫療健康附約 / 美利發增額終身壽險")
+                        
+                        all_ptypes = ["醫療實支", "壽險保障", "儲蓄/分紅/年金", "重大傷病", "癌症一次金", "日額/定額醫療", "個人意外險", "失能照護"]
+                        p_idx = all_ptypes.index(def_ptype) if def_ptype in all_ptypes else 0
+                        policy_type = st.selectbox(f"險種屬性 (#{i+1})", all_ptypes, index=p_idx, key=f"ptype_{i}")
                     with col_p2:
                         expiry_date = st.date_input(f"滿期日 / 續期應繳日 * (#{i+1})", key=f"exp_{i}")
                         premium = st.number_input(f"年度保費 (元) (#{i+1})", min_value=0, step=1000, key=f"prem_{i}")
@@ -246,22 +329,36 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                     st.markdown(f"**🎯 條款細節與保障額度配置 (#{i+1})**")
                     col_t1, col_t2 = st.columns(2)
                     with col_t1:
-                        category = st.selectbox(f"健診歸屬類別 (#{i+1})", [
-                            "實支醫療", "壽險責任", "資產儲蓄", "重大傷病", "防癌一次金", "日額定額", "意外傷害", "失能照護"
-                        ], key=f"cat_{i}")
-                        sum_assured = st.number_input(f"主要保額 / 儲蓄滿期金 (萬元) * (#{i+1})", min_value=0.0, step=10.0, key=f"sum_{i}")
-                        outpatient_limit = st.number_input(f"門診手術/雜費限額 (萬元) (實支必填) (#{i+1})", min_value=0.0, step=1.0, key=f"out_{i}")
+                        all_cats = ["實支醫療", "壽險責任", "資產儲蓄", "重大傷病", "防癌一次金", "日額定額", "意外傷害", "失能照護"]
+                        c_idx = all_cats.index(def_cat) if def_cat in all_cats else 0
+                        category = st.selectbox(f"健診歸屬類別 (#{i+1})", all_cats, index=c_idx, key=f"cat_{i}")
+                        
+                        col_amt1, col_amt2 = st.columns([1, 1])
+                        with col_amt1:
+                            sum_assured = st.number_input(f"額度數值 * (#{i+1})", value=def_sum, min_value=0.0, step=1.0, key=f"sum_{i}")
+                        with col_amt2:
+                            all_units = ["萬元 (保額/滿期金)", "計畫 (實支/XHD等)", "元/日 (日額/住院)", "單位 (手術/防癌)", "自訂"]
+                            u_idx = all_units.index(def_unit) if def_unit in all_units else 0
+                            unit_label = st.selectbox(f"計價單位 / 形式 (#{i+1})", all_units, index=u_idx, key=f"unit_{i}")
+                        
+                        custom_plan_name = st.text_input(f"完整計畫名稱 / 備註 (#{i+1})", value=def_plan_note, placeholder="例：計畫二 (雜費20萬/門診4萬)", key=f"plan_note_{i}")
+                        outpatient_limit = st.number_input(f"門診手術/雜費限額 (萬元) (#{i+1})", value=def_out, min_value=0.0, step=1.0, key=f"out_{i}")
                     with col_t2:
-                        has_227 = st.selectbox(f"限制 2-2-7 手術？ (#{i+1})", ["否", "是", "不適用"], key=f"h227_{i}")
-                        receipt_type = st.selectbox(f"理賠收據規範 (#{i+1})", ["可副本", "限正本", "不適用"], key=f"rec_{i}")
-                        clause_details = st.text_area(f"詳細條款 / 利率 / 儲蓄解約金備註 (#{i+1})", placeholder="例：住院雜費20萬/門診手術4萬/無2-2-7限制 或 預定利率2.5%/第10年預估解約金50萬", key=f"det_{i}", height=70)
+                        idx_227 = ["否", "是", "不適用"].index(def_227) if def_227 in ["否", "是", "不適用"] else 0
+                        has_227 = st.selectbox(f"限制 2-2-7 手術？ (#{i+1})", ["否", "是", "不適用"], index=idx_227, key=f"h227_{i}")
+                        
+                        idx_rec = ["可副本", "限正本", "不適用"].index(def_rec) if def_rec in ["可副本", "限正本", "不適用"] else 0
+                        receipt_type = st.selectbox(f"理賠收據規範 (#{i+1})", ["可副本", "限正本", "不適用"], index=idx_rec, key=f"rec_{i}")
+                        
+                        clause_details = st.text_area(f"詳細條款 / 利率 / 儲蓄解約金備註 (#{i+1})", value=def_det, placeholder="例：住院雜費20萬/門診手術4萬/無2-2-7限制 或 預定利率2.5%/第10年預估解約金50萬", key=f"det_{i}", height=120)
 
                     st.markdown("---")
                     policies_data.append({
                         "company": company, "policy_no": policy_no, "policy_name": policy_name,
                         "policy_type": policy_type, "expiry_date": expiry_date, "premium": premium,
                         "payment_method": payment_method, "card_expiry": card_expiry,
-                        "category": category, "sum_assured": sum_assured, "outpatient_limit": outpatient_limit,
+                        "category": category, "sum_assured": sum_assured, "sum_assured_unit": unit_label,
+                        "plan_unit_name": custom_plan_name, "outpatient_limit": outpatient_limit,
                         "has_227": has_227, "receipt_type": receipt_type, "clause_details": clause_details
                     })
 
@@ -286,13 +383,15 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                             new_pid = cur.lastrowid
 
                             cur.execute("""
-                            INSERT INTO policy_benefits (policy_id, category, sum_assured, outpatient_limit, has_227_clause, receipt_type, clause_details)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                            """, (new_pid, p["category"], p["sum_assured"], p["outpatient_limit"], p["has_227"], p["receipt_type"], p["clause_details"].strip()))
+                            INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (new_pid, p["category"], p["sum_assured"], p["sum_assured_unit"], p["plan_unit_name"].strip(), p["outpatient_limit"], p["has_227"], p["receipt_type"], p["clause_details"].strip()))
                             saved_count += 1
 
                     conn.commit()
                     st.session_state.policy_form_count = 1
+                    if "ai_preset" in st.session_state:
+                        del st.session_state["ai_preset"]
                     st.success(f"🎉 成功為客戶建立 {saved_count} 張保單／附約！")
                     st.rerun()
 
@@ -301,7 +400,7 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
         q_all = """
         SELECT p.policy_id, p.client_id, c.name AS client_name, p.company, p.policy_no, 
                p.policy_name, p.policy_type, p.expiry_date, p.premium, p.payment_method, p.card_expiry,
-               b.benefit_id, b.category, b.sum_assured, b.outpatient_limit, b.has_227_clause, b.receipt_type, b.clause_details
+               b.benefit_id, b.category, b.sum_assured, b.sum_assured_unit, b.plan_unit_name, b.outpatient_limit, b.has_227_clause, b.receipt_type, b.clause_details
         FROM policies p
         JOIN clients c ON p.client_id = c.client_id
         LEFT JOIN policy_benefits b ON p.policy_id = b.policy_id
@@ -333,14 +432,16 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                 col_e3, col_e4 = st.columns(2)
                 with col_e3:
                     edit_cat = st.text_input("保障類別", value=row_data['category'] or "")
-                    edit_sum = st.number_input("主要保額 (萬)", value=float(row_data['sum_assured'] or 0.0), step=10.0)
-                    edit_out_lim = st.number_input("門診手術限額 (萬)", value=float(row_data['outpatient_limit'] or 0.0), step=1.0)
+                    edit_sum = st.number_input("保額/數值", value=float(row_data['sum_assured'] or 0.0), step=1.0)
+                    edit_unit = st.text_input("單位/形式 (例：萬元 / 計畫 / 元/日)", value=row_data['sum_assured_unit'] or "萬元")
+                    edit_plan = st.text_input("計畫別/備註 (若有)", value=row_data['plan_unit_name'] or "")
                 with col_e4:
+                    edit_out_lim = st.number_input("門診手術限額 (萬)", value=float(row_data['outpatient_limit'] or 0.0), step=1.0)
                     has_227_val = row_data['has_227_clause'] if row_data['has_227_clause'] in ["否", "是", "不適用"] else "否"
                     rec_val = row_data['receipt_type'] if row_data['receipt_type'] in ["可副本", "限正本", "不適用"] else "可副本"
                     edit_227 = st.selectbox("限制 2-2-7 手術", ["否", "是", "不適用"], index=["否", "是", "不適用"].index(has_227_val))
                     edit_rec = st.selectbox("收據規範", ["可副本", "限正本", "不適用"], index=["可副本", "限正本", "不適用"].index(rec_val))
-                    edit_details = st.text_area("詳細條款與備註", value=row_data['clause_details'] or "", height=100)
+                    edit_details = st.text_area("詳細條款與備註", value=row_data['clause_details'] or "", height=80)
 
                 if st.form_submit_button("💾 儲存修改"):
                     conn.execute("UPDATE clients SET name = ? WHERE client_id = ?", (edit_name.strip(), int(row_data['client_id'])))
@@ -351,9 +452,9 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                     
                     if pd.notna(row_data['benefit_id']):
                         conn.execute("""
-                        UPDATE policy_benefits SET category=?, sum_assured=?, outpatient_limit=?, has_227_clause=?, receipt_type=?, clause_details=?
+                        UPDATE policy_benefits SET category=?, sum_assured=?, sum_assured_unit=?, plan_unit_name=?, outpatient_limit=?, has_227_clause=?, receipt_type=?, clause_details=?
                         WHERE policy_id=?
-                        """, (edit_cat.strip(), edit_sum, edit_out_lim, edit_227, edit_rec, edit_details.strip(), target_pid))
+                        """, (edit_cat.strip(), edit_sum, edit_unit.strip(), edit_plan.strip(), edit_out_lim, edit_227, edit_rec, edit_details.strip(), target_pid))
                     conn.commit()
                     st.success("🎉 修改儲存成功！")
                     st.rerun()
@@ -464,8 +565,8 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
 
                 full_clause_txt = f"{custom_car_details}\n備註：{car_notes}".strip()
                 cur.execute("""
-                INSERT INTO policy_benefits (policy_id, category, sum_assured, outpatient_limit, has_227_clause, receipt_type, clause_details)
-                VALUES (?, '責任/財損', ?, 0, '不適用', '不適用', ?)
+                INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details)
+                VALUES (?, '責任/財損', ?, '萬元', '', 0, '不適用', '不適用', ?)
                 """, (new_pid, super_limit, full_clause_txt))
                 conn.commit()
                 st.success(f"✅ 車險【{policy_no}】建立成功！已加入到期排程掃描！")
@@ -486,9 +587,9 @@ elif menu == "📊 精準條款健診與理賠情境試算":
         selected_cid = client_dict[selected_label]
         selected_name = selected_label.split(" (ID:")[0]
 
-        df_benefits = pd.read_sql_query(f"""
+        df_raw = pd.read_sql_query(f"""
         SELECT p.company AS '保險公司', p.policy_name AS '主附約名稱', p.policy_type AS '險種',
-               b.category AS '保障類別', b.sum_assured AS '主要保額(萬)', 
+               b.category AS '保障類別', b.sum_assured, b.sum_assured_unit, b.plan_unit_name,
                b.outpatient_limit AS '門診手術限額(萬)',
                b.has_227_clause AS '限制2-2-7手術',
                b.receipt_type AS '收據規範',
@@ -498,11 +599,28 @@ elif menu == "📊 精準條款健診與理賠情境試算":
         WHERE p.client_id = {selected_cid}
         """, conn)
 
-        if df_benefits.empty:
+        if df_raw.empty:
             st.info("該客戶尚無條款細項資料。")
         else:
+            def format_amount(row):
+                unit = str(row['sum_assured_unit'] or "萬元")
+                val = row['sum_assured'] or 0.0
+                plan = str(row['plan_unit_name'] or "").strip()
+                if "計畫" in unit:
+                    return f"計畫 {val:.0f} ({plan})" if plan else f"計畫 {val:.0f}"
+                elif "元/日" in unit:
+                    return f"{val:,.0f} 元/日"
+                elif "單位" in unit:
+                    return f"{val:.0f} 單位"
+                else:
+                    return f"{val:.1f} 萬元"
+
+            df_benefits = df_raw.copy()
+            df_benefits['保障額度/計畫'] = df_benefits.apply(format_amount, axis=1)
+            display_cols = ['保險公司', '主附約名稱', '險種', '保障類別', '保障額度/計畫', '門診手術限額(萬)', '限制2-2-7手術', '收據規範', '詳細條款與理賠定義']
+            
             st.subheader("1. 條款核心參數一覽表")
-            st.dataframe(df_benefits, use_container_width=True)
+            st.dataframe(df_benefits[display_cols], use_container_width=True)
 
             st.subheader("2. 🔍 條款風險與爭議防呆預警")
             warnings = []
@@ -531,7 +649,7 @@ elif menu == "📊 精準條款健診與理賠情境試算":
                 st.markdown("##### 🏥 情境 A：微創門診手術（自費 15 萬）")
                 med_df = df_benefits[df_benefits['保障類別'].str.contains("實支", na=False)]
                 if not med_df.empty:
-                    total_outpatient = med_df['門診手術限額(萬)'].fillna(med_df['主要保額(萬)']).sum()
+                    total_outpatient = med_df['門診手術限額(萬)'].fillna(med_df['sum_assured']).sum()
                     st.write(f"- 客戶名下實支醫療門診理賠上限合計：**{total_outpatient:.1f} 萬元**")
                     if total_outpatient < 15:
                         st.markdown(f"<span style='color:red;'>❌ 預計自費缺口：**{15 - total_outpatient:.1f} 萬元**</span>", unsafe_allow_html=True)
@@ -543,7 +661,7 @@ elif menu == "📊 精準條款健診與理賠情境試算":
             with col_s2:
                 st.markdown("##### 🎗️ 情境 B：確診重大傷病（健保重大傷病卡核發）")
                 ci_df = df_benefits[df_benefits['保障類別'].str.contains("重大傷病|防癌|一次金", na=False)]
-                total_ci = ci_df['主要保額(萬)'].sum() if not ci_df.empty else 0.0
+                total_ci = ci_df['sum_assured'].sum() if not ci_df.empty else 0.0
                 st.write(f"- 確診當下可立即動用自由現金：**{total_ci:.1f} 萬元**")
                 if total_ci < 100:
                     st.markdown(f"<span style='color:red;'>⚠️ 目前防護缺口：**{max(0.0, 100 - total_ci):.1f} 萬元**</span>", unsafe_allow_html=True)
@@ -560,7 +678,7 @@ elif menu == "📊 精準條款健診與理賠情境試算":
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_policies.to_excel(writer, sheet_name='保單清單與到期', index=False)
-                df_benefits.to_excel(writer, sheet_name='精準條款健診與缺口', index=False)
+                df_benefits[display_cols].to_excel(writer, sheet_name='精準條款健診與缺口', index=False)
             excel_data = output.getvalue()
 
             st.download_button(
