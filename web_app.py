@@ -5,12 +5,6 @@ from datetime import datetime, timedelta
 import io
 import json
 
-try:
-    import google.generativeai as genai
-    HAS_GENAI = True
-except ImportError:
-    HAS_GENAI = False
-
 # 設定頁面標題與品牌圖示
 st.set_page_config(
     page_title="澄璞財務顧問工作室 ｜ JennyHsieh CFP® (體驗版)", 
@@ -30,6 +24,82 @@ st.markdown("""
 
 DB_NAME = "client_vault.db"
 MAX_DEMO_POLICIES = 3  # 體驗版最大保單上限
+
+# 內建市場常見保單代碼字典庫 (免 API Key 即時帶入)
+INSURANCE_CODE_DB = {
+    "XHD": {
+        "company": "全球人壽",
+        "policy_name": "XHD 實在醫靠醫療健康保險附約",
+        "policy_type": "醫療實支",
+        "category": "實支醫療",
+        "unit_label": "計畫 (實支/XHD等)",
+        "sum_val": 2.0,
+        "plan_note": "計畫二 (住院雜費20萬/門診手術4萬)",
+        "outpatient_limit": 4.0,
+        "has_227": "否",
+        "receipt_type": "可副本",
+        "clause_details": "無2-2-7手術限制，可理賠門診特定處置。門診手術雜費合併限額4~5萬。"
+    },
+    "XHR": {
+        "company": "全球人壽",
+        "policy_name": "XHR 醫療費用健康保險附約",
+        "policy_type": "醫療實支",
+        "category": "實支醫療",
+        "unit_label": "計畫 (實支/XHD等)",
+        "sum_val": 5.0,
+        "plan_note": "計畫五 (住院雜費12萬/門診手術5.5萬)",
+        "outpatient_limit": 5.5,
+        "has_227": "否",
+        "receipt_type": "可副本",
+        "clause_details": "一代實支神約，副本收據，無2-2-7限制，門診手術比照住院手術。"
+    },
+    "HNRC": {
+        "company": "台灣人壽",
+        "policy_name": "HNRC 新住院醫療保險附約",
+        "policy_type": "醫療實支",
+        "category": "實支醫療",
+        "unit_label": "計畫 (實支/XHD等)",
+        "sum_val": 3.0,
+        "plan_note": "計畫三 (住院雜費15萬/門診手術15萬)",
+        "outpatient_limit": 15.0,
+        "has_227": "否",
+        "receipt_type": "可副本",
+        "clause_details": "門診手術額度高達15萬且無2-2-7限制，涵蓋自費特材與處置。"
+    },
+    "HS": {
+        "company": "富邦人壽",
+        "policy_name": "HS 長順/享硬醫療健康保險附約",
+        "policy_type": "醫療實支",
+        "category": "實支醫療",
+        "unit_label": "計畫 (實支/XHD等)",
+        "sum_val": 1.0,
+        "plan_note": "計畫C (雜費15萬/門診微創額度內)",
+        "outpatient_limit": 15.0,
+        "has_227": "是",
+        "receipt_type": "限正本",
+        "clause_details": "限制健保2-2-7手術章節，門診處置（如息肉切除、雷射）需留意無理賠。"
+    },
+    "CV": {
+        "company": "國泰人壽",
+        "policy_name": "CV 新真全意住院醫療健康保險附約",
+        "policy_type": "醫療實支",
+        "category": "實支醫療",
+        "unit_label": "計畫 (實支/XHD等)",
+        "sum_val": 10.0,
+        "plan_note": "M10 計畫 (住院雜費10萬)",
+        "outpatient_limit": 1.0,
+        "has_227": "是",
+        "receipt_type": "限正本",
+        "clause_details": "限制正本收據，門診手術額度僅1萬元，自費耗材缺口較大。"
+    }
+}
+
+def lookup_policy_code(query_str):
+    q = query_str.strip().upper()
+    for code, data in INSURANCE_CODE_DB.items():
+        if code in q or data["policy_name"].upper() in q or code in q.replace(" ", ""):
+            return data
+    return None
 
 def get_conn():
     return sqlite3.connect(DB_NAME)
@@ -99,45 +169,6 @@ def get_total_policy_count():
         cur.execute("SELECT COUNT(*) FROM policies")
         return cur.fetchone()[0]
 
-def parse_policy_with_ai(api_key, text_query):
-    if not HAS_GENAI:
-        return None, "系統尚未安裝 google-generativeai 套件"
-    if not api_key:
-        return None, "請先於左側邊欄輸入有效的 Gemini API Key"
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"""
-        你是一位台灣保險市場專業 CFP® 與核保理賠顧問。
-        請根據使用者輸入的保單代碼、險種名稱或商品簡稱：「{text_query}」，解析該商品的市場真實條款與規格。
-        
-        請嚴格輸出純 JSON 格式（不要有 markdown 區塊外的文字），包含以下欄位：
-        {{
-            "company": "保險公司名稱（例：全球人壽 / 台灣人壽 / 國泰人壽 / 富邦人壽 / 南山人壽）",
-            "policy_name": "完整主附約名稱（包含代號與中文全名）",
-            "policy_type": "險種屬性，必須從以下選一：醫療實支、壽險保障、儲蓄/分紅/年金、重大傷病、癌症一次金、日額/定額醫療、個人意外險、失能照護",
-            "category": "健診歸屬類別，必須從以下選一：實支醫療、壽險責任、資產儲蓄、重大傷病、防癌一次金、日額定額、意外傷害、失能照護",
-            "unit_label": "計價形式，必須從以下選一：萬元 (保額/滿期金)、計畫 (實支/XHD等)、元/日 (日額/住院)、單位 (手術/防癌)",
-            "sum_val": 預估額度數值（數值浮點數，如計畫二填2、日額1000填1000、保額100萬填100，未知填0）,
-            "plan_note": "計畫別或規格說明（例：計畫二 (住院雜費20萬/門診手術4萬)）",
-            "outpatient_limit": 門診手術/雜費上限（萬元，數值浮點數，無則填0.0）,
-            "has_227": "是否有限制健保2-2-7手術？必須為：是、否、不適用",
-            "receipt_type": "理賠收據規範？必須為：可副本、限正本、不適用",
-            "clause_details": "條款精華摘要（包含住院限額、門診限制、處置備註或預定利率）"
-        }}
-        """
-        response = model.generate_content(prompt)
-        txt = response.text.strip()
-        if txt.startswith("```json"):
-            txt = txt[7:]
-        if txt.startswith("```"):
-            txt = txt[3:]
-        if txt.endswith("```"):
-            txt = txt[:-3]
-        return json.loads(txt.strip()), None
-    except Exception as e:
-        return None, f"AI 解析失敗：{str(e)}"
-
 # ==================== 側邊欄：客製化專屬品牌識別 ====================
 with st.sidebar:
     st.markdown("""
@@ -193,8 +224,6 @@ with st.sidebar:
             st.success("✅ 體驗資料已清空，可重新輸入 3 筆！")
             st.rerun()
 
-    api_key = st.text_input("🔑 Gemini API Key (智慧條款代碼解析)", type="password")
-
     menu = st.radio("功能模組導航", [
         "📝 壽險/全險種批次建檔 (體驗版限3筆)",
         "🚗 新增車險 (市場常用/自訂空白框)",
@@ -224,28 +253,21 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
             remaining = MAX_DEMO_POLICIES - current_count
             st.success(f"✨ 體驗版目前尚可建立 **{remaining}** 筆保單。")
             
-            # 智慧 AI 條款自動解析助理
-            with st.expander("🤖 點此展開【AI 智慧條款與險種代碼自動帶入】(支援 XHD / HNRC / 停售商品等)", expanded=True):
-                st.caption("輸入代碼或險種名稱（如：`全球 XHD 計畫二` 或 `台壽 HNRC 計畫三`），AI 將自動聯網抓取精確條款、2-2-7 限制與門診額度！")
-                col_ai_in, col_ai_btn = st.columns([4, 2])
-                with col_ai_in:
-                    ai_input_query = st.text_input("輸入保險公司 / 商品代碼 / 計畫別：", placeholder="例：全球人壽 XHD 計畫二 / 富邦人壽 HS 計畫C", key="ai_search_query")
-                with col_ai_btn:
+            # 條款代碼快速帶入小工具
+            with st.expander("⚡ 常用保單代碼快速帶入 (輸入 XHD / HNRC / HS / XHR / CV 秒填)", expanded=True):
+                col_code_in, col_code_btn = st.columns([4, 2])
+                with col_code_in:
+                    input_code = st.text_input("輸入保單代碼或險種名稱：", placeholder="例如輸入：XHD 或 HNRC", key="quick_code_input")
+                with col_code_btn:
                     st.write("")
                     st.write("")
-                    btn_run_ai = st.button("🔍 AI 智慧辨識並帶入")
-
-                if btn_run_ai:
-                    if not ai_input_query.strip():
-                        st.error("請輸入要查詢的保單代碼或險種名稱！")
-                    else:
-                        with st.spinner("🤖 正在聯網比對市場條款資料庫與 2-2-7 限制規範..."):
-                            parsed_data, err = parse_policy_with_ai(api_key, ai_input_query.strip())
-                            if err:
-                                st.error(err)
-                            elif parsed_data:
-                                st.session_state.ai_preset = parsed_data
-                                st.success(f"🎉 成功識別【{parsed_data.get('company')} - {parsed_data.get('policy_name')}】！已自動帶入下方表單。")
+                    if st.button("⚡ 快速帶入條款規格"):
+                        matched = lookup_policy_code(input_code)
+                        if matched:
+                            st.session_state.quick_preset = matched
+                            st.success(f"✅ 成功辨識【{matched['company']} - {matched['policy_name']}】！已自動帶入下方表單。")
+                        else:
+                            st.warning(f"未找到代碼【{input_code}】，您可直接在下方手動輸入。")
 
             st.subheader("1. 選擇或輸入客戶資訊")
             if not clients.empty:
@@ -290,7 +312,7 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
 
             st.write(f"目前將為該客戶建立 **{st.session_state.policy_form_count}** 張保單／附約項目：")
 
-            preset = st.session_state.get("ai_preset", {})
+            preset = st.session_state.get("quick_preset", {})
 
             with st.form("batch_policies_form"):
                 policies_data = []
@@ -298,7 +320,6 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                 for i in range(st.session_state.policy_form_count):
                     st.markdown(f"#### 📄 保單／附約項目 #{i+1}")
                     
-                    # 若第一筆有 AI 帶入預設值
                     def_comp = preset.get("company", "") if i == 0 else ""
                     def_pname = preset.get("policy_name", "") if i == 0 else ""
                     def_ptype = preset.get("policy_type", "醫療實支") if i == 0 else "醫療實支"
@@ -390,8 +411,8 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
 
                     conn.commit()
                     st.session_state.policy_form_count = 1
-                    if "ai_preset" in st.session_state:
-                        del st.session_state["ai_preset"]
+                    if "quick_preset" in st.session_state:
+                        del st.session_state["quick_preset"]
                     st.success(f"🎉 成功為客戶建立 {saved_count} 張保單／附約！")
                     st.rerun()
 
