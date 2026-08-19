@@ -23,131 +23,49 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 DB_NAME = "client_vault.db"
-REGULATION_CUTOFF_DATE = "2024-07-01"  # 實支實付損害填補新制法規分水嶺
-MAX_DEMO_POLICIES = 3  # 體驗版總保單上限
+REGULATION_CUTOFF_DATE = "2024-07-01"  
+MAX_DEMO_POLICIES = 3  
 
-# 台灣主要壽險公司的主力主約與附約商品清單庫
 COMPANY_PRODUCTS_DB = {
     "全球人壽": {
-        "mains": [
-            "QWX 終身壽險", "DCE 醫卡讚重大傷病終身健康保險", 
-            "QTL 幸福定期壽險", "XDJ 臻愛久久重大傷病定期健康保險",
-            "XTG 臻愛久久防癌終身健康保險", "美利發增額終身壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "XHR 醫療費用健康保險附約", "XHD 實在醫靠醫療健康保險附約", 
-            "XHB 實在醫靠醫療健康保險附約", "XDE 醫護重大傷病健康保險附約", 
-            "XTC 臻幸福防癌定期健康保險附約", "MIR 傷害保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["QWX 終身壽險", "DCE 醫卡讚重大傷病終身健康保險", "QTL 幸福定期壽險", "XDJ 臻愛久久重大傷病定期健康保險", "XTG 臻愛久久防癌終身健康保險", "美利發增額終身壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["XHR 醫療費用健康保險附約", "XHD 實在醫靠醫療健康保險附約", "XHB 實在醫靠醫療健康保險附約", "XDE 醫護重大傷病健康保險附約", "XTC 臻幸福防癌定期健康保險附約", "MIR 傷害保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "台灣人壽": {
-        "mains": [
-            "T02H0 福滿人生終身壽險", "T08F0 傳富安心重大傷病定期健康保險", 
-            "OTL1 珍好命一年定期壽險", "T04V2 傳富滿滿終身壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "HNRC 新住院醫療保險附約", "HNRB 新住院醫療保險附約", 
-            "HNRD 自負額住院醫療健康保險附約", "CIR4 金安心卡順利重大傷病健康保險附約", 
-            "YCD 愛無慮防癌一次金保險附約", "YHB 新住院醫療定額健康保險附約", 
-            "SPAR 長安傷害保險附約", "BX0 實質效益傷害醫療保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["T02H0 福滿人生終身壽險", "T08F0 傳富安心重大傷病定期健康保險", "OTL1 珍好命一年定期壽險", "T04V2 傳富滿滿終身壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["HNRC 新住院醫療保險附約", "HNRB 新住院醫療保險附約", "HNRD 自負額住院醫療健康保險附約", "CIR4 金安心卡順利重大傷病健康保險附約", "YCD 愛無慮防癌一次金保險附約", "YHB 新住院醫療定額健康保險附約", "SPAR 長安傷害保險附約", "BX0 實質效益傷害醫療保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "富邦人壽": {
-        "mains": [
-            "XWS 終身壽險", "XLT 金安順重大傷病定期健康保險", 
-            "SWB 鑫富利增額終身壽險", "EHI 享安心住院醫療定額主約",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "HS 新綜合住院醫療保險附約", "HSG 長順住院醫療健康保險附約", 
-            "HSN 佳順住院醫療健康保險附約", "HKR 防癌定期健康保險附約", 
-            "PCC 防癌終身健康保險附約", "ADC 日額意外傷害保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["XWS 終身壽險", "XLT 金安順重大傷病定期健康保險", "SWB 鑫富利增額終身壽險", "EHI 享安心住院醫療定額主約", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["HS 新綜合住院醫療保險附約", "HSG 長順住院醫療健康保險附約", "HSN 佳順住院醫療健康保險附約", "HKR 防癌定期健康保險附約", "PCC 防癌終身健康保險附約", "ADC 日額意外傷害保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "國泰人壽": {
-        "mains": [
-            "L65 鑫彩終身壽險", "UB 鍾心滿滿重大傷病定期保險", 
-            "B65 增美利終身壽險", "L3 萬代福終身壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "CV 新真全意住院醫療健康保險附約", "CV1 真全意住院醫療健康保險附約", 
-            "CV2 實全心意住院醫療健康保險附約", "ZV 金骨力傷害保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["L65 鑫彩終身壽險", "UB 鍾心滿滿重大傷病定期保險", "B65 增美利終身壽險", "L3 萬代福終身壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["CV 新真全意住院醫療健康保險附約", "CV1 真全意住院醫療健康保險附約", "CV2 實全心意住院醫療健康保險附約", "ZV 金骨力傷害保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "南山人壽": {
-        "mains": [
-            "NNPL 新終身壽險", "CAB 護您久久防癌終身健康保險", 
-            "1CR 康祥重大疾病終身健康保險", "美滿發增額終身壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "1HIR 住院醫療保險附約", "HS 住院醫療保險附約", 
-            "HSI 好醫靠住院醫療健康保險附約", "PAR 新人身意外傷害保險附約", 
-            "DHI 意外傷害日額附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["NNPL 新終身壽險", "CAB 護您久久防癌終身健康保險", "1CR 康祥重大疾病終身健康保險", "美滿發增額終身壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["1HIR 住院醫療保險附約", "HS 住院醫療保險附約", "HSI 好醫靠住院醫療健康保險附約", "PAR 新人身意外傷害保險附約", "DHI 意外傷害日額附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "遠雄人壽": {
-        "mains": [
-            "FI1 傳富新世代終身壽險", "MB1 美滿富貴終身壽險", 
-            "FX7 終身壽險", "HG4 金好心終身健康保險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "RJ1 康富醫療健康保險附約", "RM1 永康醫療健康保險附約", 
-            "RM2 永康自負額醫療附約", "CJ1 愛家安心防癌健康保險附約", 
-            "XCD 一年定期防癌健康保險附約", "RHA 超好心傷害保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["FI1 傳富新世代終身壽險", "MB1 美滿富貴終身壽險", "FX7 終身壽險", "HG4 金好心終身健康保險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["RJ1 康富醫療健康保險附約", "RM1 永康醫療健康保險附約", "RM2 永康自負額醫療附約", "CJ1 愛家安心防癌健康保險附約", "XCD 一年定期防癌健康保險附約", "RHA 超好心傷害保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "新光人壽": {
-        "mains": [
-            "DNA 珍愛健康終身壽險", "E2 傳家寶終身壽險", 
-            "長金倍發終身壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "C1 安心住院醫療保險附約", "U1 好全方位傷害保險附約", 
-            "V1 好全方位傷害醫療保險附約(實支)",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["DNA 珍愛健康終身壽險", "E2 傳家寶終身壽險", "長金倍發終身壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["C1 安心住院醫療保險附約", "U1 好全方位傷害保險附約", "V1 好全方位傷害醫療保險附約(實支)", "✍️ 自行輸入其他附約/代碼"]
     },
     "凱基人壽(中國)": {
-        "mains": [
-            "LEGO 金康泰專案主約", "MAJOTA 傳富終身壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "LEGOTA 金康泰住院醫療健康保險附約", "MAJOTA 超康泰自負額住院醫療健康保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["LEGO 金康泰專案主約", "MAJOTA 傳富終身壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["LEGOTA 金康泰住院醫療健康保險附約", "MAJOTA 超康泰自負額住院醫療健康保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "安聯人壽": {
-        "mains": [
-            "WS 萬世福終身壽險", "WL 卓越人生變額萬能壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "TL0 一年定期壽險附約", "DR 一年定期重大疾病健康保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["WS 萬世福終身壽險", "WL 卓越人生變額萬能壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["TL0 一年定期壽險附約", "DR 一年定期重大疾病健康保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "宏泰人壽": {
-        "mains": [
-            "FCB 觀音防癌終身健康保險", "宏運發終身壽險",
-            "✍️ 自行輸入其他商品/代碼"
-        ],
-        "riders": [
-            "HSA 薰衣草醫療健康保險附約",
-            "✍️ 自行輸入其他附約/代碼"
-        ]
+        "mains": ["FCB 觀音防癌終身健康保險", "宏運發終身壽險", "✍️ 自行輸入其他商品/代碼"],
+        "riders": ["HSA 薰衣草醫療健康保險附約", "✍️ 自行輸入其他附約/代碼"]
     },
     "其他保險公司": {
         "mains": ["✍️ 自行輸入其他商品/代碼"],
@@ -190,7 +108,6 @@ def calculate_rider_expiry(birth_d, max_age):
     except ValueError:
         return date(exp_year, birth_d.month, 28).strftime("%Y-%m-%d")
 
-# 強效防彈初始化與自動補欄位 (絕對不發生 DatabaseError)
 def init_and_migrate_db():
     with get_conn() as conn:
         c = conn.cursor()
@@ -456,7 +373,7 @@ if menu == "📝 主約+附約體系建檔":
                     m_exp_date = f"{main_start_date.year + main_pay_years}年滿期" if main_pay_years > 0 else "終身"
 
                     cur = conn.cursor()
-                    cur.execute("INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry) VALUES (?, ?, ?, ?, ?, '主約', ?, ?, 99, ?, ?, ?, ?, ?, '')", (c_id, main_company.strip(), main_policy_no.strip(), main_policy_name.strip(), main_policy_type, main_pay_years, main_pay_freq, sdate_str, m_next_due, str(m_exp_date), main_premium, main_paym))
+                    cur.execute("INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry) VALUES (?, ?, ?, ?, ?, '👑 主約', ?, ?, 99, ?, ?, ?, ?, ?, '')", (c_id, main_company.strip(), main_policy_no.strip(), main_policy_name.strip(), main_policy_type, main_pay_years, main_pay_freq, sdate_str, m_next_due, str(m_exp_date), main_premium, main_paym))
                     main_pid = cur.lastrowid
                     cur.execute("INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (main_pid, main_cat, main_sum, main_unit, main_plan_note.strip(), main_out_limit, main_h227, main_rec, main_details.strip()))
 
@@ -466,7 +383,7 @@ if menu == "📝 主約+附約體系建檔":
                             final_r_rec = r_item["receipt_type"]
                             if "實支" in r_item["category"] and sdate_str >= REGULATION_CUTOFF_DATE:
                                 if final_r_rec in ["可副本", "限正本"]: final_r_rec = "限正本(差額證明)"
-                            cur.execute("INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry) VALUES (?, ?, ?, ?, ?, '附約', 1, ?, ?, ?, ?, ?, 0, ?, '')", (c_id, main_company.strip(), main_policy_no.strip(), r_item["policy_name"].strip(), r_item["policy_type"], main_pay_freq, r_item["max_renew_age"], sdate_str, m_next_due, r_item["expiry_date"], main_paym))
+                            cur.execute("INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry) VALUES (?, ?, ?, ?, ?, '📎 附約', 1, ?, ?, ?, ?, ?, 0, ?, '')", (c_id, main_company.strip(), main_policy_no.strip(), r_item["policy_name"].strip(), r_item["policy_type"], main_pay_freq, r_item["max_renew_age"], sdate_str, m_next_due, r_item["expiry_date"], main_paym))
                             r_pid = cur.lastrowid
                             cur.execute("INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (r_pid, r_item["category"], r_item["sum_assured"], r_item["sum_assured_unit"], r_item["plan_unit_name"].strip(), r_item["outpatient_limit"], r_item["has_227"], final_r_rec, r_item["clause_details"].strip()))
                             r_saved += 1
@@ -477,7 +394,7 @@ if menu == "📝 主約+附約體系建檔":
 
     with tab_add_rider:
         st.subheader("📎 為現有主約追加新附約")
-        main_policies_df = pd.read_sql_query("SELECT p.policy_id, p.client_id, c.name AS client_name, c.birth_date, p.company, p.policy_no, p.policy_name, p.start_date, p.pay_frequency, p.payment_method FROM policies p JOIN clients c ON p.client_id = c.client_id WHERE p.is_main = '主約'", conn)
+        main_policies_df = pd.read_sql_query("SELECT p.policy_id, p.client_id, c.name AS client_name, c.birth_date, p.company, p.policy_no, p.policy_name, p.start_date, p.pay_frequency, p.payment_method FROM policies p JOIN clients c ON p.client_id = c.client_id WHERE p.is_main IN ('👑 主約', '主約')", conn)
         if main_policies_df.empty: st.info("尚無主約保單。")
         elif current_count >= MAX_DEMO_POLICIES: st.warning("🔒 體驗版額度已滿。")
         else:
@@ -511,7 +428,7 @@ if menu == "📝 主約+附約體系建檔":
                 elif not add_r_name.strip(): st.error("請填寫附約名稱！")
                 else:
                     cur = conn.cursor()
-                    cur.execute("INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry) VALUES (?, ?, ?, ?, ?, '附約', 1, ?, ?, ?, '', ?, 0, ?, '')", (int(target_main_row['client_id']), target_main_row['company'], target_main_row['policy_no'], add_r_name.strip(), add_r_type, target_main_row['pay_frequency'], add_r_mage, target_main_row['start_date'], add_r_exp, target_main_row['payment_method']))
+                    cur.execute("INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry) VALUES (?, ?, ?, ?, ?, '📎 附約', 1, ?, ?, ?, '', ?, 0, ?, '')", (int(target_main_row['client_id']), target_main_row['company'], target_main_row['policy_no'], add_r_name.strip(), add_r_type, target_main_row['pay_frequency'], add_r_mage, target_main_row['start_date'], add_r_exp, target_main_row['payment_method']))
                     new_r_pid = cur.lastrowid
                     cur.execute("INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (new_r_pid, add_r_cat, add_r_sum, add_r_unit, add_r_pnote.strip(), add_r_out, add_r_h227, add_r_rec, add_r_details.strip()))
                     conn.commit()
@@ -582,7 +499,11 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
                         cur.execute("INSERT INTO clients (name, birth_date) VALUES (?, ?)", (c_name.strip(), c_bdate.strftime("%Y-%m-%d")))
                         c_id = cur.lastrowid
                     cur = conn.cursor()
-                    cur.execute("INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, start_date, expiry_date, premium, payment_method, card_expiry) VALUES (?, ?, ?, ?, '車險', '車險', 1, ?, ?, ?, '信用卡', '')", (c_id, company.strip(), policy_no.strip(), plan_name.strip(), start_date.strftime("%Y-%m-%d"), expiry_date.strftime("%Y-%m-%d"), premium))
+                    # 修正這裡：補齊所有必填欄位，解決 OperationalError
+                    cur.execute("""
+                    INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, expiry_date, premium, payment_method, card_expiry)
+                    VALUES (?, ?, ?, ?, '車險', '車險', 1, '年繳', 99, ?, ?, ?, '信用卡', '')
+                    """, (c_id, company.strip(), policy_no.strip(), plan_name.strip(), start_date.strftime("%Y-%m-%d"), expiry_date.strftime("%Y-%m-%d"), premium))
                     new_pid = cur.lastrowid
                     cur.execute("INSERT INTO policy_benefits (policy_id, category, sum_assured, clause_details) VALUES (?, '責任/財損', 1000, ?)", (new_pid, details))
                     conn.commit()
