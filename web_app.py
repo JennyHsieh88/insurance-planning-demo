@@ -3,7 +3,6 @@ import pandas as pd
 import streamlit as st
 from datetime import datetime, timedelta, date
 import io
-import json
 
 # 設定頁面標題與品牌圖示
 st.set_page_config(
@@ -24,7 +23,6 @@ DB_NAME = "client_vault.db"
 MAX_DEMO_POLICIES = 3  # 體驗版上限 3 筆
 REGULATION_CUTOFF_DATE = "2024-07-01"
 
-# 台灣主要壽險公司的主力主約與附約商品清單庫
 COMPANY_PRODUCTS_DB = {
     "全球人壽": {
         "mains": ["QWX 終身壽險", "DCE 醫卡讚重大傷病終身健康保險", "QTL 幸福定期壽險", "XDJ 臻愛久久重大傷病定期健康保險", "XTG 臻愛久久防癌終身健康保險", "美利發增額終身壽險", "✍️ 自行輸入其他商品/代碼"],
@@ -102,24 +100,16 @@ def calculate_rider_expiry(birth_d, max_age):
     except ValueError:
         return date(exp_year, birth_d.month, 28).strftime("%Y-%m-%d")
 
-def init_and_migrate_db():
+# 保證每次啟動都會自動創建正確的表格結構
+def init_db():
     with get_conn() as conn:
         c = conn.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS clients (client_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, birth_date TEXT, phone TEXT, family_id TEXT)")
         c.execute("CREATE TABLE IF NOT EXISTS policies (policy_id INTEGER PRIMARY KEY AUTOINCREMENT, client_id INTEGER, company TEXT NOT NULL, policy_no TEXT NOT NULL, policy_name TEXT NOT NULL, policy_type TEXT NOT NULL, is_main TEXT DEFAULT '👑 主約', pay_years INTEGER DEFAULT 20, pay_frequency TEXT DEFAULT '年繳', max_renew_age INTEGER DEFAULT 80, start_date TEXT, next_due_date TEXT, expiry_date TEXT, premium INTEGER, payment_method TEXT, card_expiry TEXT, FOREIGN KEY (client_id) REFERENCES clients (client_id))")
         c.execute("CREATE TABLE IF NOT EXISTS policy_benefits (benefit_id INTEGER PRIMARY KEY AUTOINCREMENT, policy_id INTEGER, category TEXT, sum_assured REAL, sum_assured_unit TEXT DEFAULT '萬元', plan_unit_name TEXT DEFAULT '', outpatient_limit REAL, has_227_clause TEXT, receipt_type TEXT, clause_details TEXT, FOREIGN KEY (policy_id) REFERENCES policies (policy_id))")
-        
-        # 防呆自動補齊欄位
-        cols_p = [i[1] for i in c.execute("PRAGMA table_info(policies)").fetchall()]
-        for col, default in [("start_date", "2023-01-01"), ("is_main", "👑 主約"), ("pay_years", 20), ("pay_frequency", "年繳"), ("next_due_date", ""), ("max_renew_age", 80), ("card_expiry", ""), ("payment_method", "信用卡")]:
-            if col not in cols_p: c.execute(f"ALTER TABLE policies ADD COLUMN {col} TEXT DEFAULT '{default}'" if isinstance(default, str) else f"ALTER TABLE policies ADD COLUMN {col} INTEGER DEFAULT {default}")
-
-        cols_b = [i[1] for i in c.execute("PRAGMA table_info(policy_benefits)").fetchall()]
-        for col, default in [("outpatient_limit", 0.0), ("has_227_clause", "否"), ("receipt_type", "可副本"), ("clause_details", ""), ("sum_assured_unit", "萬元"), ("plan_unit_name", "")]:
-            if col not in cols_b: c.execute(f"ALTER TABLE policy_benefits ADD COLUMN {col} TEXT DEFAULT '{default}'" if isinstance(default, str) else f"ALTER TABLE policy_benefits ADD COLUMN {col} REAL DEFAULT {default}")
         conn.commit()
 
-init_and_migrate_db()
+init_db()
 
 def get_total_policy_count():
     try:
