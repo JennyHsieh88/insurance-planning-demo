@@ -26,69 +26,6 @@ DB_NAME = "client_vault.db"
 MAX_DEMO_POLICIES = 3  # 體驗版最大保單上限
 REGULATION_CUTOFF_DATE = "2024-07-01"  # 實支實付損害填補新制法規分水嶺
 
-# 台灣保險市場大型代碼與商品知識庫
-INSURANCE_CODE_DB = {
-    # ===== 全球人壽 =====
-    "XHD": {"company": "全球人壽", "policy_name": "XHD 實在醫靠醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費20萬/門診手術4萬)", "outpatient_limit": 4.0, "has_227": "否", "is_reimburse": True, "clause_details": "無2-2-7手術限制，門診處置比照手術。門診手術雜費合併限額4萬。"},
-    "XHR": {"company": "全球人壽", "policy_name": "XHR 醫療費用健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 5.0, "plan_note": "計畫五 (住院雜費12萬/門診手術5.5萬)", "outpatient_limit": 5.5, "has_227": "否", "is_reimburse": True, "clause_details": "一代實支經典神約，無2-2-7限制，門診手術雜費比照住院手術。"},
-    "XHB": {"company": "全球人壽", "policy_name": "XHB 實在醫靠醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費15萬/門診4萬)", "outpatient_limit": 4.0, "has_227": "否", "is_reimburse": True, "clause_details": "門診手術自費雜費合併限額，無2-2-7限制。"},
-    "XDE": {"company": "全球人壽", "policy_name": "XDE 醫護重大傷病健康保險附約", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "健保重大傷病卡核發即理賠一次金。"},
-    "XDJ": {"company": "全球人壽", "policy_name": "XDJ 臻愛久久重大傷病定期健康保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 50.0, "plan_note": "50萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "重大傷病保險金一次給付。"},
-    "DCE": {"company": "全球人壽", "policy_name": "DCE 醫卡讚重大傷病終身健康保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 20.0, "plan_note": "主約20萬", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "重大傷病主約，涵蓋特定傷病一次金。"},
-    "XTC": {"company": "全球人壽", "policy_name": "XTC 臻幸福防癌定期健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "初期/輕度/重度癌症分級一次金給付。"},
-    "XTG": {"company": "全球人壽", "policy_name": "XTG 臻愛久久防癌終身健康保險", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "終身防癌一次金，罹癌即給付。"},
-    "QTL": {"company": "全球人壽", "policy_name": "QTL 幸福定期壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 500.0, "plan_note": "定期壽險500萬", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "純定期壽險，身故/完全失能責任保障。"},
-    "QWX": {"company": "全球人壽", "policy_name": "QWX 終身壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 20.0, "plan_note": "主約20萬", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "主約出單用終身壽險。"},
-    "MIR": {"company": "全球人壽", "policy_name": "MIR 傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "意外死殘100萬", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "意外身故與失能保障。"},
-
-    # ===== 台灣人壽 =====
-    "HNRC": {"company": "台灣人壽", "policy_name": "HNRC 新住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 3.0, "plan_note": "計畫三 (住院雜費15萬/門診手術15萬)", "outpatient_limit": 15.0, "has_227": "否", "is_reimburse": True, "clause_details": "門診手術額度高達15萬且無2-2-7限制，涵蓋微創手術與自費特材。"},
-    "HNRB": {"company": "台灣人壽", "policy_name": "HNRB 新住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 3.0, "plan_note": "計畫三 (住院雜費15萬/門診手術15萬)", "outpatient_limit": 15.0, "has_227": "否", "is_reimburse": True, "clause_details": "台壽經典實支，門診額度充足且無2-2-7限制。"},
-    "HNRD": {"company": "台灣人壽", "policy_name": "HNRD 自負額住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 3.0, "plan_note": "計畫三 (自負額自付自選超額)", "outpatient_limit": 15.0, "has_227": "否", "is_reimburse": True, "clause_details": "自負額型醫療實支，拉高第二層醫療雜費防護網。"},
-    "T08F0": {"company": "台灣人壽", "policy_name": "T08F0 傳富安心重大傷病定期健康保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "健保重大傷病卡一次金給付。"},
-    "YCD": {"company": "台灣人壽", "policy_name": "YCD 愛無慮防癌一次金保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "初期、輕度、重度癌症一次給付金。"},
-    "YHB": {"company": "台灣人壽", "policy_name": "YHB 新住院醫療定額健康保險附約", "policy_type": "日額/定額醫療", "category": "日額定額", "unit_label": "元/日 (日額/住院)", "sum_val": 1000.0, "plan_note": "每日1000元", "outpatient_limit": 0.0, "has_227": "否", "is_reimburse": False, "clause_details": "住院日額與定額手術補助金。"},
-    "CIR4": {"company": "台灣人壽", "policy_name": "CIR4 金安心卡順利重大傷病健康保險附約", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "重大傷病一次金，隨健保範圍連動。"},
-    "SPAR": {"company": "台灣人壽", "policy_name": "SPAR 長安傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "意外死殘100萬 (含失能扶助金)", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "含重大燒燙傷與1-6級意外失能扶助月給付。"},
-    "BX0": {"company": "台灣人壽", "policy_name": "BX0 實質效益傷害醫療保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 5.0, "plan_note": "意外實支5萬", "outpatient_limit": 5.0, "has_227": "否", "is_reimburse": True, "clause_details": "意外門診或住院醫療收據實支實付。"},
-
-    # ===== 富邦人壽 =====
-    "HS": {"company": "富邦人壽", "policy_name": "HS 新綜合住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 1.0, "plan_note": "計畫C (雜費15萬/門診手術4萬)", "outpatient_limit": 4.0, "has_227": "是", "is_reimburse": True, "clause_details": "正本收據，條款限制健保2-2-7手術章節，門診處置（如息肉、雷射）無理賠。"},
-    "HSG": {"company": "富邦人壽", "policy_name": "HSG 長順住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 1.0, "plan_note": "計畫C (住院雜費15萬)", "outpatient_limit": 4.0, "has_227": "是", "is_reimburse": True, "clause_details": "限制正本收據與2-2-7手術章節。"},
-    "HKR": {"company": "富邦人壽", "policy_name": "HKR 防癌定期健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "富邦防癌一次金定期附約。"},
-
-    # ===== 國泰人壽 =====
-    "CV": {"company": "國泰人壽", "policy_name": "CV 新真全意住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "M10 計畫 (住院雜費10萬/門診手術1萬)", "outpatient_limit": 1.0, "has_227": "是", "is_reimburse": True, "clause_details": "限制正本收據，門診手術限額僅1萬元且受2-2-7限制，自費微創自付額高。"},
-    "CV2": {"company": "國泰人壽", "policy_name": "CV2 實全心意住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "M10 計畫 (住院雜費10萬/門診1.5萬)", "outpatient_limit": 1.5, "has_227": "是", "is_reimburse": True, "clause_details": "正本收據，門診手術限額偏低，限制健保2-2-7手術。"},
-
-    # ===== 遠雄人壽 =====
-    "RJ1": {"company": "遠雄人壽", "policy_name": "RJ1 康富醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費30萬/門診手術20萬)", "outpatient_limit": 20.0, "has_227": "是", "is_reimburse": True, "clause_details": "超高雜費，但嚴格限制健保2-2-7手術，2-2-6處置不賠。"},
-    "CJ1": {"company": "遠雄人壽", "policy_name": "CJ1 愛家安心防癌健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "is_reimburse": False, "clause_details": "遠雄高CP值防癌一次金。"},
-
-    # ===== 宏泰人壽 =====
-    "HSA": {"company": "宏泰人壽", "policy_name": "HSA 薰衣草醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費25萬/手術無限制)", "outpatient_limit": 25.0, "has_227": "否", "is_reimburse": True, "clause_details": "可理賠門診手術雜費，無2-2-7限制。"}
-}
-
-def lookup_policy_code(query_str):
-    if not query_str:
-        return None
-    q = query_str.strip().upper()
-    for code, data in INSURANCE_CODE_DB.items():
-        if q == code or q.startswith(code + " ") or q.endswith(" " + code):
-            return data
-    for code, data in INSURANCE_CODE_DB.items():
-        if code in q or data["policy_name"].upper() in q or q in data["policy_name"].upper():
-            return data
-    nicknames = {
-        "薰衣草": "HSA", "實在醫靠": "XHD", "實支醫靠": "XHD", "醫療費用": "XHR",
-        "新住院醫療": "HNRC", "長順": "HSG", "新綜合": "HS", "真全意": "CV",
-        "實全心意": "CV2", "康富": "RJ1", "愛家安心": "CJ1"
-    }
-    for nick, target_code in nicknames.items():
-        if nick in q:
-            return INSURANCE_CODE_DB.get(target_code)
-    return None
-
 def get_conn():
     return sqlite3.connect(DB_NAME)
 
@@ -249,32 +186,6 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
             remaining = MAX_DEMO_POLICIES - current_count
             st.success(f"✨ 體驗版目前尚可建立 **{remaining}** 筆保單。")
             
-            # 條款代碼快速帶入小工具
-            with st.expander("⚡ 常用險種代碼與名稱智慧檢索", expanded=True):
-                col_code_in, col_code_btn = st.columns([4, 2])
-                with col_code_in:
-                    input_code = st.text_input("輸入保單代碼或險種關鍵字：", placeholder="例如輸入：XHR、HNRC、XHD、HS、RJ1 等", key="quick_code_input")
-                with col_code_btn:
-                    st.write("")
-                    st.write("")
-                    if st.button("⚡ 快速帶入條款規格"):
-                        matched = lookup_policy_code(input_code)
-                        if matched:
-                            st.session_state["comp_0"] = matched["company"]
-                            st.session_state["pname_0"] = matched["policy_name"]
-                            st.session_state["ptype_0"] = matched["policy_type"]
-                            st.session_state["cat_0"] = matched["category"]
-                            st.session_state["sum_0"] = float(matched["sum_val"])
-                            st.session_state["unit_0"] = matched["unit_label"]
-                            st.session_state["plan_note_0"] = matched["plan_note"]
-                            st.session_state["out_0"] = float(matched["outpatient_limit"])
-                            st.session_state["h227_0"] = matched["has_227"]
-                            st.session_state["last_lookup_matched_0"] = matched
-                            st.success(f"✅ 成功辨識【{matched['company']} - {matched['policy_name']}】！已填入保單 #1。")
-                            st.rerun()
-                        else:
-                            st.warning(f"未在內建庫找到【{input_code}】，您可直接在下方手動輸入。")
-
             st.subheader("1. 選擇或輸入客戶資訊")
             if not clients.empty:
                 c_mode = st.radio("客戶來源：", ["✍️ 直接打新客戶名字", "🔍 選擇現有客戶"], horizontal=True, key="life_c_mode")
@@ -297,7 +208,7 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                 c_id = c_opts[sel_k]
 
             st.markdown("---")
-            st.subheader("2. 填寫保單與附約資料")
+            st.subheader("2. 填寫保單與附約資料（支援 Enter 快速存檔）")
 
             if "policy_form_count" not in st.session_state:
                 st.session_state.policy_form_count = 1
@@ -318,20 +229,31 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
 
             st.write(f"目前將為該客戶建立 **{st.session_state.policy_form_count}** 張保單／附約項目：")
 
-            # 改用即時動態容器，移除表單隔離
-            policies_data = []
+            company_options = [
+                "全球人壽", "台灣人壽", "富邦人壽", "國泰人壽", "南山人壽", 
+                "遠雄人壽", "新光人壽", "凱基人壽(中國)", "安聯人壽", 
+                "宏泰人壽", "三商美邦", "保誠人壽", "安達人壽", "其他保險公司"
+            ]
 
-            for i in range(st.session_state.policy_form_count):
-                with st.container():
+            with st.form("batch_policies_form", clear_on_submit=False):
+                policies_data = []
+
+                for i in range(st.session_state.policy_form_count):
                     st.markdown(f"#### 📄 保單／附約項目 #{i+1}")
                     
                     all_ptypes = ["醫療實支", "壽險保障", "儲蓄/分紅/年金", "重大傷病", "癌症一次金", "日額/定額醫療", "個人意外險", "失能照護"]
                     all_cats = ["實支醫療", "壽險責任", "資產儲蓄", "重大傷病", "防癌一次金", "日額定額", "意外傷害", "失能照護"]
                     all_units = ["萬元 (保額/滿期金)", "計畫 (實支/XHD等)", "元/日 (日額/住院)", "單位 (手術/防癌)", "自訂"]
+                    receipt_options = ["可副本", "限正本", "限正本(差額證明)", "不適用"]
 
                     col_p1, col_p2 = st.columns(2)
                     with col_p1:
-                        company = st.text_input(f"保險公司 * (#{i+1})", key=f"comp_{i}", placeholder="例：全球人壽 / 國泰人壽 / 富邦人壽 / 南山人壽")
+                        company_select = st.selectbox(f"保險公司 (#{i+1})", company_options, key=f"comp_sel_{i}")
+                        if company_select == "其他保險公司":
+                            company = st.text_input(f"請輸入保險公司名稱 * (#{i+1})", key=f"comp_{i}")
+                        else:
+                            company = company_select
+                            
                         policy_no = st.text_input(f"保單號碼 * (#{i+1})", key=f"pno_{i}", placeholder="例：0008899123")
                         policy_name = st.text_input(f"主附約名稱 / 代碼 * (#{i+1})", key=f"pname_{i}", placeholder="例：XHR 醫療費用健康保險附約 / 美利發增額終身壽險")
                         policy_type = st.selectbox(f"險種屬性 (#{i+1})", all_ptypes, key=f"ptype_{i}")
@@ -360,30 +282,8 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                         outpatient_limit = st.number_input(f"門診手術/雜費限額 (萬元) (#{i+1})", min_value=0.0, step=1.0, key=f"out_{i}")
                     with col_t2:
                         has_227 = st.selectbox(f"限制 2-2-7 手術？ (#{i+1})", ["否", "是", "不適用"], key=f"h227_{i}")
-                        
-                        # 核心即時連動邏輯：根據投保始期自動計算推薦收據規範
-                        is_new_law = str(start_date) >= REGULATION_CUTOFF_DATE
-                        if "實支" in category:
-                            if is_new_law:
-                                rec_default_idx = 1 # 限正本(差額證明)
-                            else:
-                                is_orig = company in ["國泰人壽", "富邦人壽"]
-                                rec_default_idx = 2 if is_orig else 0 # 限正本 or 可副本
-                        else:
-                            rec_default_idx = 3 # 不適用
-
-                        receipt_options = ["可副本 (舊制自由理賠)", "限正本(差額證明/2024新制)", "限正本", "不適用"]
-                        receipt_type = st.selectbox(f"理賠收據規範 (#{i+1})", receipt_options, index=rec_default_idx, key=f"rec_{i}")
-                        
-                        # 自動產生條款與法規備註
-                        def_det_text = ""
-                        if "實支" in category:
-                            if is_new_law:
-                                def_det_text = "【⚖️ 2024/7/1後新制出單】全面落實損害填補原則，需正本或開立差額證明，不可重複請領。"
-                            else:
-                                def_det_text = "【🏷️ 2024/7/1前舊制出單】適用不溯及既往原則，享條款原始給付與副本多倍理賠權益。"
-                                
-                        clause_details = st.text_area(f"詳細條款 / 利率 / 儲蓄解約金備註 (#{i+1})", value=def_det_text, key=f"det_{i}", height=100)
+                        receipt_type = st.selectbox(f"理賠收據規範 (#{i+1})", receipt_options, key=f"rec_{i}")
+                        clause_details = st.text_area(f"詳細條款 / 利率 / 儲蓄解約金備註 (#{i+1})", placeholder="例：住院雜費12萬/門診手術5.5萬/無2-2-7限制", key=f"det_{i}", height=120)
 
                     st.markdown("---")
                     policies_data.append({
@@ -392,42 +292,48 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                         "premium": premium, "payment_method": payment_method, "card_expiry": card_expiry,
                         "category": category, "sum_assured": sum_assured, "sum_assured_unit": unit_label,
                         "plan_unit_name": custom_plan_name, "outpatient_limit": outpatient_limit,
-                        "has_227": has_227, "receipt_type": receipt_type.split(" ")[0], "clause_details": clause_details
+                        "has_227": has_227, "receipt_type": receipt_type, "clause_details": clause_details
                     })
 
-            if st.button("🚀 一鍵批次儲存該客戶所有保單與附約", type="primary"):
-                if c_mode == "✍️ 直接打新客戶名字":
-                    if not new_c_name.strip():
-                        st.error("請輸入客戶姓名！")
-                        st.stop()
-                    cur = conn.cursor()
-                    cur.execute("INSERT INTO clients (name, phone, family_id) VALUES (?, ?, ?)", (new_c_name.strip(), new_c_phone.strip(), new_c_family.strip()))
-                    c_id = cur.lastrowid
-
-                saved_count = 0
-                for p in policies_data:
-                    if p["company"].strip() and p["policy_name"].strip():
-                        final_receipt = p["receipt_type"]
-                        final_details = p["clause_details"]
-                        sdate_str = p["start_date"].strftime("%Y-%m-%d")
-
+                submit_all = st.form_submit_button("🚀 一鍵批次儲存 (或直接按 Enter 存檔)")
+                if submit_all:
+                    if c_mode == "✍️ 直接打新客戶名字":
+                        if not new_c_name.strip():
+                            st.error("請輸入客戶姓名！")
+                            st.stop()
                         cur = conn.cursor()
-                        cur.execute("""
-                        INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, start_date, expiry_date, premium, payment_method, card_expiry)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (c_id, p["company"].strip(), p["policy_no"].strip(), p["policy_name"].strip(), p["policy_type"], sdate_str, p["expiry_date"].strftime("%Y-%m-%d"), p["premium"], p["payment_method"], p["card_expiry"].strip()))
-                        new_pid = cur.lastrowid
+                        cur.execute("INSERT INTO clients (name, phone, family_id) VALUES (?, ?, ?)", (new_c_name.strip(), new_c_phone.strip(), new_c_family.strip()))
+                        c_id = cur.lastrowid
 
-                        cur.execute("""
-                        INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (new_pid, p["category"], p["sum_assured"], p["sum_assured_unit"], p["plan_unit_name"].strip(), p["outpatient_limit"], p["has_227"], final_receipt, final_details.strip()))
-                        saved_count += 1
+                    saved_count = 0
+                    for p in policies_data:
+                        if p["company"].strip() and p["policy_name"].strip():
+                            final_receipt = p["receipt_type"]
+                            final_details = p["clause_details"]
+                            sdate_str = p["start_date"].strftime("%Y-%m-%d")
 
-                conn.commit()
-                st.session_state.policy_form_count = 1
-                st.success(f"🎉 成功建立 {saved_count} 張保單！已精準依投保生效日連動條款與理賠新舊法規！")
-                st.rerun()
+                            # 自動法規矯正：2024/7/1 後實支強制以差額證明分攤
+                            if "實支" in p["category"] and sdate_str >= REGULATION_CUTOFF_DATE:
+                                if final_receipt in ["可副本", "限正本"]:
+                                    final_receipt = "限正本(差額證明)"
+
+                            cur = conn.cursor()
+                            cur.execute("""
+                            INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, start_date, expiry_date, premium, payment_method, card_expiry)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (c_id, p["company"].strip(), p["policy_no"].strip(), p["policy_name"].strip(), p["policy_type"], sdate_str, p["expiry_date"].strftime("%Y-%m-%d"), p["premium"], p["payment_method"], p["card_expiry"].strip()))
+                            new_pid = cur.lastrowid
+
+                            cur.execute("""
+                            INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (new_pid, p["category"], p["sum_assured"], p["sum_assured_unit"], p["plan_unit_name"].strip(), p["outpatient_limit"], p["has_227"], final_receipt, final_details.strip()))
+                            saved_count += 1
+
+                    conn.commit()
+                    st.session_state.policy_form_count = 1
+                    st.success(f"🎉 成功建立 {saved_count} 張保單！")
+                    st.rerun()
 
     # ====== 編輯保單分頁 ======
     with tab_edit:
@@ -484,9 +390,8 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                 if st.form_submit_button("💾 儲存修改"):
                     save_rec = edit_rec
                     sdate_str = edit_sdate.strftime("%Y-%m-%d")
-                    if "實支" in edit_cat:
-                        if sdate_str >= REGULATION_CUTOFF_DATE:
-                            save_rec = "限正本(差額證明)"
+                    if "實支" in edit_cat and sdate_str >= REGULATION_CUTOFF_DATE:
+                        save_rec = "限正本(差額證明)"
 
                     conn.execute("UPDATE clients SET name = ? WHERE client_id = ?", (edit_name.strip(), int(row_data['client_id'])))
                     conn.execute("""
