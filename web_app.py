@@ -41,7 +41,6 @@ def calculate_next_due_date(start_d, pay_freq, pay_years):
     if pay_years == 0 or pay_freq == "躉繳":
         return "已躉繳/期滿"
     
-    # 若已超過總繳費年限
     if pay_years > 0 and (today.year - start_d.year) >= pay_years:
         return "已繳費期滿 (免繳)"
 
@@ -59,7 +58,7 @@ def calculate_next_due_date(start_d, pay_freq, pay_years):
 def calculate_rider_expiry(birth_d, max_age):
     if not birth_d or max_age <= 0:
         return "終身/依主約"
-    exp_year = birth_d.year + max_age
+    exp_year = birth_d.year + int(max_age)
     try:
         return date(exp_year, birth_d.month, birth_d.day).strftime("%Y-%m-%d")
     except ValueError:
@@ -222,19 +221,31 @@ with st.sidebar:
         "👥 客戶名單管理"
     ])
 
+company_options = [
+    "全球人壽", "台灣人壽", "富邦人壽", "國泰人壽", "南山人壽", 
+    "遠雄人壽", "新光人壽", "凱基人壽(中國)", "安聯人壽", 
+    "宏泰人壽", "三商美邦", "保誠人壽", "安達人壽", "其他保險公司"
+]
+all_ptypes = ["壽險保障", "儲蓄/分紅/年金", "醫療實支", "重大傷病", "癌症一次金", "日額/定額醫療", "個人意外險", "失能照護"]
+all_cats = ["壽險責任", "資產儲蓄", "實支醫療", "重大傷病", "防癌一次金", "日額定額", "意外傷害", "失能照護"]
+all_units = ["萬元 (保額/滿期金)", "計畫 (實支/XHD等)", "元/日 (日額/住院)", "單位 (手術/防癌)", "自訂"]
+receipt_options = ["可副本", "限正本", "限正本(差額證明)", "不適用"]
+
 # ==================== 模組 1: 主約+附約樹狀建檔 ====================
 if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
-    st.header("📝 保單主約 ＋ 附約體系精算建檔（體驗版限 3 筆）")
+    st.header("📝 保單主約 ＋ 附約體系精算建檔（體驗版限定最多 3 筆）")
     conn = get_conn()
     clients = pd.read_sql_query("SELECT client_id, name, birth_date FROM clients", conn)
     current_count = get_total_policy_count()
 
-    tab_batch, tab_edit, tab_del = st.tabs([
-        "➕ 建立保單主約與依附附約",
+    tab_batch, tab_add_rider, tab_edit, tab_del = st.tabs([
+        "➕ 建立新保單(主約+附約)",
+        "📎 為現有主約追加新附約",
         "✏️ 編輯現有保單",
         "🗑️ 刪除保單"
     ])
 
+    # ====== 1. 建立全新保單 ======
     with tab_batch:
         if current_count >= MAX_DEMO_POLICIES:
             st.warning(f"🔒 **體驗版額度已滿（{current_count}/{MAX_DEMO_POLICIES} 筆）**\n\n目前已達到試用體驗上限 3 筆保單。如需解鎖無限保單建檔、家庭整合模型與全功能健診模組，請洽 **Jenny CFP®**。")
@@ -250,7 +261,6 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                 c_mode = "✍️ 直接打新客戶名字"
 
             c_id = None
-            new_c_name, new_c_phone, new_c_family, new_c_birth = "", "", "", date(1990, 1, 1)
             selected_client_birth = date(1990, 1, 1)
 
             if c_mode == "✍️ 直接打新客戶名字":
@@ -261,7 +271,6 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                     birth_input = st.date_input("出生日期 *", value=date(1990, 1, 1), min_value=date(1920, 1, 1), max_value=date.today(), key="life_new_birth")
                     calc_age = calculate_age(birth_input)
                     st.caption(f"🎂 目前年齡：**{calc_age} 歲**")
-                    new_c_birth = birth_input
                     selected_client_birth = birth_input
                 with col3:
                     new_c_phone = st.text_input("聯絡電話", key="life_new_phone")
@@ -278,19 +287,8 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                     st.info(f"👤 客戶：**{client_row['name']}** ｜ 生日：**{client_row['birth_date']}** ｜ 目前年齡：**{calculate_age(selected_client_birth)} 歲**")
 
             st.markdown("---")
-            st.subheader("2. 填寫【保單主約】與繳費期別 (連動推算續期繳費日)")
+            st.subheader("2. 填寫【保單主約】核心資料")
 
-            company_options = [
-                "全球人壽", "台灣人壽", "富邦人壽", "國泰人壽", "南山人壽", 
-                "遠雄人壽", "新光人壽", "凱基人壽(中國)", "安聯人壽", 
-                "宏泰人壽", "三商美邦", "保誠人壽", "安達人壽", "其他保險公司"
-            ]
-            all_ptypes = ["壽險保障", "儲蓄/分紅/年金", "醫療實支", "重大傷病", "癌症一次金", "日額/定額醫療", "個人意外險", "失能照護"]
-            all_cats = ["壽險責任", "資產儲蓄", "實支醫療", "重大傷病", "防癌一次金", "日額定額", "意外傷害", "失能照護"]
-            all_units = ["萬元 (保額/滿期金)", "計畫 (實支/XHD等)", "元/日 (日額/住院)", "單位 (手術/防癌)", "自訂"]
-            receipt_options = ["可副本", "限正本", "限正本(差額證明)", "不適用"]
-
-            # 主約容器
             with st.container():
                 st.markdown("### 👑 保單主約核心資訊")
                 col_m1, col_m2 = st.columns(2)
@@ -307,9 +305,8 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                         main_pay_years = st.selectbox("主約繳費年期 *", [20, 10, 6, 15, 25, 30, 1, 0], format_func=lambda x: "躉繳" if x == 0 else f"{x} 年期", key="main_pyears")
                     with col_md2:
                         main_pay_freq = st.selectbox("繳費頻率 *", ["年繳", "半年繳", "季繳", "月繳"], key="main_pfreq")
-                        # 動態連動精算續期繳費日
                         calculated_due = calculate_next_due_date(main_start_date, main_pay_freq, main_pay_years)
-                        st.text_input("下次續期應繳日 (系統自動精算)", value=calculated_due, disabled=True, key="calc_due_disp")
+                        st.text_input("下次續期應繳日 (系統自動精算)", value=calculated_due, disabled=True, key=f"calc_due_{main_start_date}_{main_pay_freq}_{main_pay_years}")
                     
                     main_premium = st.number_input("全單總繳年度保費 (元)", min_value=0, step=1000, key="main_prem")
                     main_paym = st.selectbox("繳費管道", ["活存轉帳", "信用卡", "自行繳款", "躉繳", "已繳費期滿"], key="main_paym")
@@ -331,7 +328,6 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                     main_details = st.text_area("主約條款 / 利率 / 滿期解約金備註", placeholder="例：第20年預估解約金30萬", key="main_det", height=100)
 
             st.markdown("---")
-            # 依附附約區域
             if "rider_form_count" not in st.session_state:
                 st.session_state.rider_form_count = 0
 
@@ -354,7 +350,7 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
             riders_data = []
             for r in range(st.session_state.rider_form_count):
                 with st.container():
-                    st.markdown(f"#### 📎 附約項目 #{r+1} (依附於主約保單：{main_policy_name or '主約'})")
+                    st.markdown(f"#### 📎 附約項目 #{r+1} (依附於主約：{main_policy_name or '未填寫'})")
                     col_r1, col_r2 = st.columns(2)
                     with col_r1:
                         r_name = st.text_input(f"附約名稱 / 代碼 * (#{r+1})", key=f"r_name_{r}", placeholder="例：XHR 醫療費用健康保險附約 / XDE 重大傷病")
@@ -370,9 +366,8 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                         with col_rage1:
                             r_max_age = st.number_input(f"附約最高續保年齡 (歲) (#{r+1})", min_value=0, max_value=110, value=80, key=f"r_mage_{r}")
                         with col_rage2:
-                            # 自動推算附約保障終止日
                             r_calc_exp = calculate_rider_expiry(selected_client_birth, r_max_age)
-                            st.text_input(f"附約保障終止日 (自動換算)", value=r_calc_exp, disabled=True, key=f"r_exp_disp_{r}")
+                            st.text_input(f"附約保障終止日 (依生日+年齡換算)", value=r_calc_exp, disabled=True, key=f"r_exp_disp_{r}_{selected_client_birth}_{r_max_age}")
 
                         r_plan_note = st.text_input(f"完整計畫名稱 / 備註 (#{r+1})", placeholder="例：計畫五 (住院雜費12萬/門診5.5萬)", key=f"r_pnote_{r}")
                         r_out_limit = st.number_input(f"門診手術/雜費限額 (萬元) (#{r+1})", min_value=0.0, step=1.0, value=5.5, key=f"r_out_{r}")
@@ -395,7 +390,7 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                         st.error("請輸入客戶姓名！")
                         st.stop()
                     cur = conn.cursor()
-                    cur.execute("INSERT INTO clients (name, birth_date, phone, family_id) VALUES (?, ?, ?, ?)", (new_c_name.strip(), new_c_birth.strftime("%Y-%m-%d"), new_c_phone.strip(), new_c_family.strip()))
+                    cur.execute("INSERT INTO clients (name, birth_date, phone, family_id) VALUES (?, ?, ?, ?)", (new_c_name.strip(), selected_client_birth.strftime("%Y-%m-%d"), new_c_phone.strip(), new_c_family.strip()))
                     c_id = cur.lastrowid
 
                 if not main_company.strip() or not main_policy_no.strip() or not main_policy_name.strip():
@@ -403,16 +398,15 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                     st.stop()
 
                 sdate_str = main_start_date.strftime("%Y-%m-%d")
-                # 計算主約滿期日與續期應繳日
                 m_next_due = calculate_next_due_date(main_start_date, main_pay_freq, main_pay_years)
-                m_exp_date = (main_start_date.year + main_pay_years) if main_pay_years > 0 else "終身"
+                m_exp_date = f"{main_start_date.year + main_pay_years}年滿期" if main_pay_years > 0 else "終身"
 
                 # 1. 儲存主約
                 cur = conn.cursor()
                 cur.execute("""
                 INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry)
-                VALUES (?, ?, ?, ?, ?, '👑 主約', ?, ?, 99, ?, ?, ?, ?, ?, ?)
-                """, (c_id, main_company.strip(), main_policy_no.strip(), main_policy_name.strip(), main_policy_type, main_pay_years, main_pay_freq, sdate_str, m_next_due, str(m_exp_date), main_premium, main_paym, ""))
+                VALUES (?, ?, ?, ?, ?, '👑 主約', ?, ?, 99, ?, ?, ?, ?, ?, '')
+                """, (c_id, main_company.strip(), main_policy_no.strip(), main_policy_name.strip(), main_policy_type, main_pay_years, main_pay_freq, sdate_str, m_next_due, str(m_exp_date), main_premium, main_paym))
                 main_pid = cur.lastrowid
 
                 cur.execute("""
@@ -443,10 +437,86 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
 
                 conn.commit()
                 st.session_state.rider_form_count = 0
-                st.success(f"🎉 成功建立【{main_policy_name}】保單（含 1 筆主約 ＋ {r_saved} 筆附約）！已自動推算續期應繳日與附約滿期日！")
+                st.success(f"🎉 成功建立【{main_policy_name}】保單（含 1 筆主約 ＋ {r_saved} 筆附約）！")
                 st.rerun()
 
-    # ====== 編輯保單分頁 ======
+    # ====== 2. 為現有主約追加附約 ======
+    with tab_add_rider:
+        st.subheader("📎 為現有已建立的【主約保單】追加新附約")
+        main_policies_df = pd.read_sql_query("""
+        SELECT p.policy_id, p.client_id, c.name AS client_name, c.birth_date, p.company, p.policy_no, p.policy_name, p.start_date, p.pay_frequency, p.payment_method
+        FROM policies p
+        JOIN clients c ON p.client_id = c.client_id
+        WHERE p.is_main = '👑 主約' OR p.is_main = '主約'
+        """, conn)
+
+        if main_policies_df.empty:
+            st.info("尚無主約保單，請先至第一分頁建立主約。")
+        elif current_count >= MAX_DEMO_POLICIES:
+            st.warning(f"🔒 體驗版上限為 3 筆保單/附約，目前已滿額。")
+        else:
+            p_opts = dict(zip(
+                main_policies_df['client_name'] + " ｜ " + main_policies_df['company'] + " - " + main_policies_df['policy_name'] + " (" + main_policies_df['policy_no'] + ")",
+                main_policies_df['policy_id']
+            ))
+            sel_target_p = st.selectbox("選擇要追加附約的主約保單：", list(p_opts.keys()))
+            target_main_row = main_policies_df[main_policies_df['policy_id'] == p_opts[sel_target_p]].iloc[0]
+
+            c_bdate_obj = pd.to_datetime(target_main_row['birth_date']).date() if pd.notna(target_main_row['birth_date']) else date(1990, 1, 1)
+
+            st.info(f"📌 將加掛於：**{target_main_row['client_name']}** 的 **{target_main_row['company']}** (保單號：`{target_main_row['policy_no']}`) ｜ 生效日：`{target_main_row['start_date']}`")
+
+            col_ar1, col_ar2 = st.columns(2)
+            with col_ar1:
+                add_r_name = st.text_input("追加附約名稱 / 代碼 *", placeholder="例：XHR 醫療費用健康保險附約 / XDE 重大傷病", key="add_r_name")
+                add_r_type = st.selectbox("險種屬性", all_ptypes, index=2, key="add_r_type")
+                add_r_cat = st.selectbox("健診歸屬類別", all_cats, index=2, key="add_r_cat")
+                col_ara1, col_ara2 = st.columns(2)
+                with col_ara1:
+                    add_r_sum = st.number_input("額度數值 *", min_value=0.0, step=1.0, value=5.0, key="add_r_sum")
+                with col_ara2:
+                    add_r_unit = st.selectbox("計價單位", all_units, index=1, key="add_r_unit")
+            with col_ar2:
+                col_armage1, col_armage2 = st.columns(2)
+                with col_armage1:
+                    add_r_mage = st.number_input("附約最高續保年齡 (歲)", min_value=0, max_value=110, value=80, key="add_r_mage")
+                with col_armage2:
+                    add_r_exp = calculate_rider_expiry(c_bdate_obj, add_r_mage)
+                    st.text_input("附約保障終止日", value=add_r_exp, disabled=True, key=f"add_r_exp_disp_{add_r_mage}_{c_bdate_obj}")
+
+                add_r_pnote = st.text_input("完整計畫名稱 / 備註", placeholder="例：計畫五 (住院雜費12萬/門診5.5萬)", key="add_r_pnote")
+                add_r_out = st.number_input("門診手術/雜費限額 (萬元)", min_value=0.0, step=1.0, value=5.5, key="add_r_out")
+                add_r_h227 = st.selectbox("限制 2-2-7 手術？", ["否", "是", "不適用"], key="add_r_h227")
+                add_r_rec = st.selectbox("理賠收據規範", receipt_options, key="add_r_rec")
+                add_r_details = st.text_area("詳細條款與備註", placeholder="例：無2-2-7限制，門診雜費與手術合併計算", key="add_r_details", height=70)
+
+            if st.button("🚀 確認追加此附約至該保單", type="primary"):
+                if not add_r_name.strip():
+                    st.error("請填寫附約名稱！")
+                    st.stop()
+
+                sdate_str = target_main_row['start_date']
+                final_add_rec = add_r_rec
+                if "實支" in add_r_cat and sdate_str >= REGULATION_CUTOFF_DATE:
+                    if final_add_rec in ["可副本", "限正本"]:
+                        final_add_rec = "限正本(差額證明)"
+
+                cur = conn.cursor()
+                cur.execute("""
+                INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry)
+                VALUES (?, ?, ?, ?, ?, '📎 附約', 1, ?, ?, ?, '', ?, 0, ?, '')
+                """, (int(target_main_row['client_id']), target_main_row['company'], target_main_row['policy_no'], add_r_name.strip(), add_r_type, target_main_row['pay_frequency'], add_r_mage, sdate_str, add_r_exp, target_main_row['payment_method']))
+                new_r_pid = cur.lastrowid
+
+                cur.execute("""
+                INSERT INTO policy_benefits (policy_id, category, sum_assured, sum_assured_unit, plan_unit_name, outpatient_limit, has_227_clause, receipt_type, clause_details)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (new_r_pid, add_r_cat, add_r_sum, add_r_unit, add_r_pnote.strip(), add_r_out, add_r_h227, final_add_rec, add_r_details.strip()))
+                conn.commit()
+                st.success(f"🎉 成功為保單【{target_main_row['policy_name']}】追加附約【{add_r_name}】！")
+                st.rerun()
+
+    # ====== 3. 編輯保單分頁 ======
     with tab_edit:
         q_all = """
         SELECT p.policy_id, p.client_id, c.name AS client_name, c.birth_date, p.company, p.policy_no, 
@@ -524,7 +594,7 @@ if menu == "📝 主約+附約體系建檔 (體驗版限3筆)":
                     st.success("🎉 修改儲存成功！")
                     st.rerun()
 
-    # ====== 刪除保單分頁 ======
+    # ====== 4. 刪除保單分頁 ======
     with tab_del:
         if not edit_df.empty:
             del_opts = dict(zip(edit_df['client_name'] + " - " + edit_df['company'] + " (" + edit_df['policy_name'] + ")", edit_df['policy_id']))
@@ -627,7 +697,7 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
                 cur = conn.cursor()
                 cur.execute("""
                 INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, start_date, next_due_date, expiry_date, premium, payment_method, card_expiry)
-                VALUES (?, ?, ?, ?, '車險', '車險', '2024-01-01', ?, ?, ?, ?, '')
+                VALUES (?, ?, ?, ?, '車險', '車險', 1, '年繳', 99, '2024-01-01', ?, ?, ?, ?, '')
                 """, (c_id, company.strip(), policy_no.strip(), final_plan_name.strip(), expiry_date.strftime("%Y-%m-%d"), expiry_date.strftime("%Y-%m-%d"), premium, payment_method.strip()))
                 new_pid = cur.lastrowid
 
