@@ -41,7 +41,7 @@ COMPANY_PRODUCTS_DB = {
     },
     "國泰人壽": {
         "mains": ["L65 鑫彩終身壽險", "UB 鍾心滿滿重大傷病定期保險", "B65 增美利終身壽險", "L3 萬代福終身壽險", "✍️ 自行輸入其他商品/代碼"],
-        "riders": ["CV 新真全意住院醫療健康保險附約", "CV1 真全意住院醫療健康保險附約", "CV2 實全心意住院醫療健康保險附約", "ZV 金骨力傷害保險附約", "✍️ 自行輸入其他附約/代碼"]
+        "riders": ["CV 新真全意住院醫療健康保險附約", "CV1 真全意住院醫療健康保險附約", "CV2 實全心意住院醫療健康保險附約", "ZV 金骨力傷害保險附約", "✍️ 自行輸入其他商品/代碼"]
     },
     "南山人壽": {
         "mains": ["NNPL 新終身壽險", "CAB 護您久久防癌終身健康保險", "1CR 康祥重大疾病終身健康保險", "美滿發增額終身壽險", "✍️ 自行輸入其他商品/代碼"],
@@ -495,11 +495,13 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
                 if current_count + 1 > MAX_DEMO_POLICIES: st.error("❌ 超過體驗版上限！")
                 else:
                     if c_mode == "✍️ 直接打新客戶名字":
+                        if not c_name.strip(): st.error("請輸入客戶姓名！"); st.stop()
                         cur = conn.cursor()
                         cur.execute("INSERT INTO clients (name, birth_date) VALUES (?, ?)", (c_name.strip(), c_bdate.strftime("%Y-%m-%d")))
                         c_id = cur.lastrowid
+                    
                     cur = conn.cursor()
-                    # 修正這裡：補齊所有必填欄位，解決 OperationalError
+                    # 修正：完全對應資料庫欄位的車險寫入語法
                     cur.execute("""
                     INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, expiry_date, premium, payment_method, card_expiry)
                     VALUES (?, ?, ?, ?, '車險', '車險', 1, '年繳', 99, ?, ?, ?, '信用卡', '')
