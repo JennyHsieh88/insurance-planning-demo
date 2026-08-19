@@ -25,80 +25,112 @@ st.markdown("""
 DB_NAME = "client_vault.db"
 MAX_DEMO_POLICIES = 3  # 體驗版最大保單上限
 
-# 內建市場常見保單代碼字典庫 (免 API Key 即時帶入)
+# 台灣保險市場大型代碼與商品知識庫 (涵蓋現售與歷年主流停售保單)
 INSURANCE_CODE_DB = {
-    "XHD": {
-        "company": "全球人壽",
-        "policy_name": "XHD 實在醫靠醫療健康保險附約",
-        "policy_type": "醫療實支",
-        "category": "實支醫療",
-        "unit_label": "計畫 (實支/XHD等)",
-        "sum_val": 2.0,
-        "plan_note": "計畫二 (住院雜費20萬/門診手術4萬)",
-        "outpatient_limit": 4.0,
-        "has_227": "否",
-        "receipt_type": "可副本",
-        "clause_details": "無2-2-7手術限制，可理賠門診特定處置。門診手術雜費合併限額4~5萬。"
-    },
-    "XHR": {
-        "company": "全球人壽",
-        "policy_name": "XHR 醫療費用健康保險附約",
-        "policy_type": "醫療實支",
-        "category": "實支醫療",
-        "unit_label": "計畫 (實支/XHD等)",
-        "sum_val": 5.0,
-        "plan_note": "計畫五 (住院雜費12萬/門診手術5.5萬)",
-        "outpatient_limit": 5.5,
-        "has_227": "否",
-        "receipt_type": "可副本",
-        "clause_details": "一代實支神約，副本收據，無2-2-7限制，門診手術比照住院手術。"
-    },
-    "HNRC": {
-        "company": "台灣人壽",
-        "policy_name": "HNRC 新住院醫療保險附約",
-        "policy_type": "醫療實支",
-        "category": "實支醫療",
-        "unit_label": "計畫 (實支/XHD等)",
-        "sum_val": 3.0,
-        "plan_note": "計畫三 (住院雜費15萬/門診手術15萬)",
-        "outpatient_limit": 15.0,
-        "has_227": "否",
-        "receipt_type": "可副本",
-        "clause_details": "門診手術額度高達15萬且無2-2-7限制，涵蓋自費特材與處置。"
-    },
-    "HS": {
-        "company": "富邦人壽",
-        "policy_name": "HS 長順/享硬醫療健康保險附約",
-        "policy_type": "醫療實支",
-        "category": "實支醫療",
-        "unit_label": "計畫 (實支/XHD等)",
-        "sum_val": 1.0,
-        "plan_note": "計畫C (雜費15萬/門診微創額度內)",
-        "outpatient_limit": 15.0,
-        "has_227": "是",
-        "receipt_type": "限正本",
-        "clause_details": "限制健保2-2-7手術章節，門診處置（如息肉切除、雷射）需留意無理賠。"
-    },
-    "CV": {
-        "company": "國泰人壽",
-        "policy_name": "CV 新真全意住院醫療健康保險附約",
-        "policy_type": "醫療實支",
-        "category": "實支醫療",
-        "unit_label": "計畫 (實支/XHD等)",
-        "sum_val": 10.0,
-        "plan_note": "M10 計畫 (住院雜費10萬)",
-        "outpatient_limit": 1.0,
-        "has_227": "是",
-        "receipt_type": "限正本",
-        "clause_details": "限制正本收據，門診手術額度僅1萬元，自費耗材缺口較大。"
-    }
+    # ===== 全球人壽 =====
+    "XHD": {"company": "全球人壽", "policy_name": "XHD 實在醫靠醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費20萬/門診手術4萬)", "outpatient_limit": 4.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "無2-2-7手術限制，門診處置比照手術。門診手術雜費合併限額4萬。"},
+    "XHR": {"company": "全球人壽", "policy_name": "XHR 醫療費用健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 5.0, "plan_note": "計畫五 (住院雜費12萬/門診手術5.5萬)", "outpatient_limit": 5.5, "has_227": "否", "receipt_type": "可副本", "clause_details": "一代實支經典神約，無2-2-7限制，門診手術雜費比照住院手術。"},
+    "XHB": {"company": "全球人壽", "policy_name": "XHB 實在醫靠醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費15萬/門診4萬)", "outpatient_limit": 4.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "門診手術自費雜費合併限額，無2-2-7限制。"},
+    "XDE": {"company": "全球人壽", "policy_name": "XDE 醫護重大傷病健康保險附約", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "健保重大傷病卡核發即理賠一次金。"},
+    "XDJ": {"company": "全球人壽", "policy_name": "XDJ 臻愛久久重大傷病定期健康保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 50.0, "plan_note": "50萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "重大傷病保險金一次給付。"},
+    "DCE": {"company": "全球人壽", "policy_name": "DCE 醫卡讚重大傷病終身健康保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 20.0, "plan_note": "主約20萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "重大傷病主約，涵蓋特定傷病一次金。"},
+    "XTC": {"company": "全球人壽", "policy_name": "XTC 臻幸福防癌定期健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "初期/輕度/重度癌症分級一次金給付。"},
+    "XTG": {"company": "全球人壽", "policy_name": "XTG 臻愛久久防癌終身健康保險", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "終身防癌一次金，罹癌即給付。"},
+    "QTL": {"company": "全球人壽", "policy_name": "QTL 幸福定期壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 500.0, "plan_note": "定期壽險500萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "純定期壽險，身故/完全失能責任保障。"},
+    "QWX": {"company": "全球人壽", "policy_name": "QWX 終身壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 20.0, "plan_note": "主約20萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "主約出單用終身壽險。"},
+    "MIR": {"company": "全球人壽", "policy_name": "MIR 傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "意外死殘100萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "意外身故與失能保障。"},
+
+    # ===== 台灣人壽 =====
+    "HNRC": {"company": "台灣人壽", "policy_name": "HNRC 新住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 3.0, "plan_note": "計畫三 (住院雜費15萬/門診手術15萬)", "outpatient_limit": 15.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "門診手術額度高達15萬且無2-2-7限制，涵蓋微創手術與自費特材。"},
+    "HNRB": {"company": "台灣人壽", "policy_name": "HNRB 新住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 3.0, "plan_note": "計畫三 (住院雜費15萬/門診手術15萬)", "outpatient_limit": 15.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "台壽經典實支，可副本理賠，門診額度充足且無2-2-7限制。"},
+    "HNRD": {"company": "台灣人壽", "policy_name": "HNRD 自負額住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 3.0, "plan_note": "計畫三 (自負額自付自選超額)", "outpatient_limit": 15.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "自負額型醫療實支，拉高第二層醫療雜費防護網。"},
+    "T08F0": {"company": "台灣人壽", "policy_name": "T08F0 傳富安心重大傷病定期健康保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "健保重大傷病卡一次金給付。"},
+    "YCD": {"company": "台灣人壽", "policy_name": "YCD 愛無慮防癌一次金保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "初期、輕度、重度癌症一次給付金。"},
+    "YHB": {"company": "台灣人壽", "policy_name": "YHB 新住院醫療定額健康保險附約", "policy_type": "日額/定額醫療", "category": "日額定額", "unit_label": "元/日 (日額/住院)", "sum_val": 1000.0, "plan_note": "每日1000元", "outpatient_limit": 0.0, "has_227": "否", "receipt_type": "不適用", "clause_details": "住院日額與定額手術補助金。"},
+    "CIR4": {"company": "台灣人壽", "policy_name": "CIR4 金安心卡順利重大傷病健康保險附約", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "重大傷病一次金，隨健保範圍連動。"},
+    "T02H0": {"company": "台灣人壽", "policy_name": "T02H0 福滿人生終身壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 10.0, "plan_note": "主約10萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "終身壽險主約。"},
+    "SPAR": {"company": "台灣人壽", "policy_name": "SPAR 長安傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "意外死殘100萬 (含失能扶助金)", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "含重大燒燙傷與1-6級意外失能扶助月給付。"},
+    "BX0": {"company": "台灣人壽", "policy_name": "BX0 實質效益傷害醫療保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 5.0, "plan_note": "意外實支5萬", "outpatient_limit": 5.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "意外門診或住院醫療收據實支實付。"},
+
+    # ===== 富邦人壽 =====
+    "HS": {"company": "富邦人壽", "policy_name": "HS 新綜合住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 1.0, "plan_note": "計畫C (雜費15萬/門診手術4萬)", "outpatient_limit": 4.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "正本收據，條款限制健保2-2-7手術章節，門診處置（如息肉、雷射）無理賠。"},
+    "HSG": {"company": "富邦人壽", "policy_name": "HSG 長順住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 1.0, "plan_note": "計畫C (住院雜費15萬)", "outpatient_limit": 4.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "限制正本收據與2-2-7手術章節。"},
+    "HSN": {"company": "富邦人壽", "policy_name": "HSN 佳順住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 1.0, "plan_note": "計畫C (住院雜費15萬)", "outpatient_limit": 5.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "限制健保2-2-7手術章節，需留意自費門診缺口。"},
+    "HKR": {"company": "富邦人壽", "policy_name": "HKR 防癌定期健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "富邦防癌一次金定期附約。"},
+    "PCC": {"company": "富邦人壽", "policy_name": "PCC 防癌終身健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "單位 (手術/防癌)", "sum_val": 2.0, "plan_note": "2單位 (療程型防癌)", "outpatient_limit": 0.0, "has_227": "否", "receipt_type": "不適用", "clause_details": "傳統療程型防癌險，給付住院、手術、化療日額。"},
+    "XLT": {"company": "富邦人壽", "policy_name": "XLT 金安順重大傷病定期健康保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "重大傷病卡一次金給付。"},
+    "XWS": {"company": "富邦人壽", "policy_name": "XWS 終身壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 10.0, "plan_note": "主約10萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "富邦主約終身壽險。"},
+    "EHI": {"company": "富邦人壽", "policy_name": "EHI 享安心住院醫療定額健康保險附約", "policy_type": "日額/定額醫療", "category": "日額定額", "unit_label": "元/日 (日額/住院)", "sum_val": 1000.0, "plan_note": "每日1000元", "outpatient_limit": 0.0, "has_227": "否", "receipt_type": "不適用", "clause_details": "住院日額與定額手術津貼。"},
+
+    # ===== 國泰人壽 =====
+    "CV": {"company": "國泰人壽", "policy_name": "CV 新真全意住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "M10 計畫 (住院雜費10萬/門診手術1萬)", "outpatient_limit": 1.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "限制正本收據，門診手術限額僅1萬元且受2-2-7限制，自費微創自付額高。"},
+    "CV1": {"company": "國泰人壽", "policy_name": "CV1 真全意住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "M10 計畫 (住院雜費10萬)", "outpatient_limit": 1.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "國泰經典實支，正本理賠，門診手術限額1萬元。"},
+    "CV2": {"company": "國泰人壽", "policy_name": "CV2 實全心意住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "M10 計畫 (住院雜費10萬/門診1.5萬)", "outpatient_limit": 1.5, "has_227": "是", "receipt_type": "限正本", "clause_details": "正本收據，門診手術限額偏低，限制健保2-2-7手術。"},
+    "UB": {"company": "國泰人壽", "policy_name": "UB 鍾心滿滿重大傷病定期保險", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "國泰重大傷病定期主約。"},
+    "L65": {"company": "國泰人壽", "policy_name": "L65 鑫彩終身壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 10.0, "plan_note": "主約10萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "國泰主力出單終身壽險主約。"},
+    "ZV": {"company": "國泰人壽", "policy_name": "ZV 金骨力傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 50.0, "plan_note": "骨折險50萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "特定意外與骨折未住院津貼。"},
+
+    # ===== 南山人壽 =====
+    "1HIR": {"company": "南山人壽", "policy_name": "1HIR 住院醫療保險附約", "policy_type": "日額/定額醫療", "category": "日額定額", "unit_label": "元/日 (日額/住院)", "sum_val": 1000.0, "plan_note": "每日1000元", "outpatient_limit": 0.0, "has_227": "否", "receipt_type": "不適用", "clause_details": "南山老字號住院日額附約。"},
+    "HS": {"company": "南山人壽", "policy_name": "HS 住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "計畫10 (住院雜費5萬/門診1.5萬)", "outpatient_limit": 1.5, "has_227": "是", "receipt_type": "限正本", "clause_details": "門診手術額度低，限制健保2-2-7手術。"},
+    "HSI": {"company": "南山人壽", "policy_name": "HSI 好醫靠住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "計畫10 (住院雜費20萬/門診手術2萬)", "outpatient_limit": 2.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "正本收據，門診手術額度僅2萬且受2-2-7條款約束。"},
+    "CAB": {"company": "南山人壽", "policy_name": "CAB 護您久久防癌終身健康保險", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "單位 (手術/防癌)", "sum_val": 1.0, "plan_note": "1單位 (療程型防癌)", "outpatient_limit": 0.0, "has_227": "否", "receipt_type": "不適用", "clause_details": "傳統療程型癌症險。"},
+    "PAR": {"company": "南山人壽", "policy_name": "PAR 新人身意外傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "意外死殘100萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "南山經典意外險附約。"},
+
+    # ===== 遠雄人壽 =====
+    "RJ1": {"company": "遠雄人壽", "policy_name": "RJ1 康富醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費30萬/門診手術20萬)", "outpatient_limit": 20.0, "has_227": "是", "receipt_type": "可副本", "clause_details": "超高雜費神約，可副本理賠。但嚴格限制健保2-2-7手術，2-2-6處置不賠。"},
+    "RM1": {"company": "遠雄人壽", "policy_name": "RM1 永康醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費20萬/門診手術4萬)", "outpatient_limit": 4.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "正本收據，門診手術限額低，限制健保2-2-7章節。"},
+    "RM2": {"company": "遠雄人壽", "policy_name": "RM2 永康醫療健康保險附約(自負額)", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (自負額自選)", "outpatient_limit": 4.0, "has_227": "是", "receipt_type": "可副本", "clause_details": "遠雄自負額醫療實支。"},
+    "CJ1": {"company": "遠雄人壽", "policy_name": "CJ1 愛家安心防癌健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "遠雄高CP值防癌一次金。"},
+    "XCD": {"company": "遠雄人壽", "policy_name": "XCD 一年定期防癌健康保險附約", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "單位 (手術/防癌)", "sum_val": 6.0, "plan_note": "6單位 (含罹癌一次金與住院日額)", "outpatient_limit": 0.0, "has_227": "否", "receipt_type": "不適用", "clause_details": "遠雄經典療程+一次金防癌附約。"},
+    "FI1": {"company": "遠雄人壽", "policy_name": "FI1 傳富新世代終身壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 10.0, "plan_note": "主約10萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "出單主力終身壽險。"},
+    "RHA": {"company": "遠雄人壽", "policy_name": "RHA 超好心傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "意外死殘100萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "遠雄經典意外死殘保障。"},
+
+    # ===== 新光人壽 =====
+    "U1": {"company": "新光人壽", "policy_name": "U1 好全方位傷害保險附約", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "意外死殘100萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "新光主力意外險附約。"},
+    "V1": {"company": "新光人壽", "policy_name": "V1 好全方位傷害醫療保險附約(實支)", "policy_type": "個人意外險", "category": "意外傷害", "unit_label": "萬元 (保額/滿期金)", "sum_val": 5.0, "plan_note": "意外實支5萬", "outpatient_limit": 5.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "意外門診收據實支實付。"},
+    "C1": {"company": "新光人壽", "policy_name": "C1 安心住院醫療保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 10.0, "plan_note": "HS-10 計畫 (住院雜費10萬)", "outpatient_limit": 1.0, "has_227": "是", "receipt_type": "限正本", "clause_details": "限制正本，門診手術限額低，受2-2-7章節限制。"},
+
+    # ===== 宏泰人壽 =====
+    "HSA": {"company": "宏泰人壽", "policy_name": "HSA 薰衣草醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費25萬/手術無限制)", "outpatient_limit": 25.0, "has_227": "否", "receipt_type": "可副本", "clause_details": "可理賠門診手術雜費，無2-2-7限制，可副本理賠。"},
+    "FCB": {"company": "宏泰人壽", "policy_name": "FCB 觀音防癌終身健康保險", "policy_type": "癌症一次金", "category": "防癌一次金", "unit_label": "單位 (手術/防癌)", "sum_val": 1.0, "plan_note": "1單位", "outpatient_limit": 0.0, "has_227": "否", "receipt_type": "不適用", "clause_details": "宏泰傳統療程型防癌險。"},
+
+    # ===== 凱基(中國)人壽 =====
+    "LEGOTA": {"company": "凱基人壽", "policy_name": "LEGOTA 金康泰住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (住院雜費20萬/門診手術1.5萬)", "outpatient_limit": 1.5, "has_227": "是", "receipt_type": "限正本", "clause_details": "限制正本，門診手術額度1.5萬且受健保2-2-7章節約束。"},
+    "MAJOTA": {"company": "凱基人壽", "policy_name": "MAJOTA 超康泰自負額住院醫療健康保險附約", "policy_type": "醫療實支", "category": "實支醫療", "unit_label": "計畫 (實支/XHD等)", "sum_val": 2.0, "plan_note": "計畫二 (自負額實支)", "outpatient_limit": 1.5, "has_227": "是", "receipt_type": "可副本", "clause_details": "自負額型醫療實支附約。"},
+
+    # ===== 安聯人壽 =====
+    "TL0": {"company": "安聯人壽", "policy_name": "TL0 一年定期壽險附約", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 500.0, "plan_note": "定期壽險500萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "純一年期定期壽險責任保障。"},
+    "DR": {"company": "安聯人壽", "policy_name": "DR 一年定期重大疾病健康保險附約", "policy_type": "重大傷病", "category": "重大傷病", "unit_label": "萬元 (保額/滿期金)", "sum_val": 100.0, "plan_note": "100萬元", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "重大疾病一次金給付。"},
+    "WS": {"company": "安聯人壽", "policy_name": "WS 萬世福終身壽險", "policy_type": "壽險保障", "category": "壽險責任", "unit_label": "萬元 (保額/滿期金)", "sum_val": 30.0, "plan_note": "主約30萬", "outpatient_limit": 0.0, "has_227": "不適用", "receipt_type": "不適用", "clause_details": "安聯主約壽險。"}
 }
 
 def lookup_policy_code(query_str):
+    if not query_str:
+        return None
     q = query_str.strip().upper()
+    
+    # 1. 優先精準比對代碼 Key
     for code, data in INSURANCE_CODE_DB.items():
-        if code in q or data["policy_name"].upper() in q or code in q.replace(" ", ""):
+        if q == code or q.startswith(code + " ") or q.endswith(" " + code):
             return data
+            
+    # 2. 次要模糊比對名稱或代號
+    for code, data in INSURANCE_CODE_DB.items():
+        if code in q or data["policy_name"].upper() in q or q in data["policy_name"].upper():
+            return data
+            
+    # 3. 中文暱稱比對
+    nicknames = {
+        "薰衣草": "HSA", "實在醫靠": "XHD", "實支醫靠": "XHD", "醫療費用": "XHR",
+        "新住院醫療": "HNRC", "長順": "HSG", "新綜合": "HS", "真全意": "CV",
+        "實全心意": "CV2", "好醫靠": "HSI", "康富": "RJ1", "愛家安心": "CJ1",
+        "金康泰": "LEGOTA", "好全方位": "U1"
+    }
+    for nick, target_code in nicknames.items():
+        if nick in q:
+            return INSURANCE_CODE_DB.get(target_code)
+
     return None
 
 def get_conn():
@@ -253,11 +285,11 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
             remaining = MAX_DEMO_POLICIES - current_count
             st.success(f"✨ 體驗版目前尚可建立 **{remaining}** 筆保單。")
             
-            # 條款代碼快速帶入小工具
-            with st.expander("⚡ 常用保單代碼快速帶入 (輸入 XHD / HNRC / HS / XHR / CV 秒填)", expanded=True):
+            # 條款代碼快速帶入小工具（標題已乾淨化）
+            with st.expander("⚡ 常用險種代碼與名稱智慧檢索", expanded=True):
                 col_code_in, col_code_btn = st.columns([4, 2])
                 with col_code_in:
-                    input_code = st.text_input("輸入保單代碼或險種名稱：", placeholder="例如輸入：XHD 或 HNRC", key="quick_code_input")
+                    input_code = st.text_input("輸入保單代碼或險種關鍵字：", placeholder="例如輸入：XHD、HNRC、HS、RJ1、U1、薰衣草 等", key="quick_code_input")
                 with col_code_btn:
                     st.write("")
                     st.write("")
@@ -267,7 +299,7 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                             st.session_state.quick_preset = matched
                             st.success(f"✅ 成功辨識【{matched['company']} - {matched['policy_name']}】！已自動帶入下方表單。")
                         else:
-                            st.warning(f"未找到代碼【{input_code}】，您可直接在下方手動輸入。")
+                            st.warning(f"未在內建庫找到【{input_code}】，您可直接在下方手動輸入。")
 
             st.subheader("1. 選擇或輸入客戶資訊")
             if not clients.empty:
