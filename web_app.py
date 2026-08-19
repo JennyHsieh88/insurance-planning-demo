@@ -129,7 +129,18 @@ with st.sidebar:
 
     # 體驗版提示徽章
     total_existing = get_total_policy_count()
-    st.info(f"💡 **同事試用體驗版**\n- 目前已建檔保單：**{total_existing} / {MAX_DEMO_POLICIES}** 筆\n- 體驗版開放上限為 3 筆")
+    st.info(f"💡 **系統體驗版**\n- 目前已建檔保單：**{total_existing} / {MAX_DEMO_POLICIES}** 筆\n- 體驗版開放上限為 3 筆")
+
+    # 貼心功能：一鍵重置清空體驗資料庫
+    if total_existing > 0:
+        if st.button("🔄 一鍵清空／重置體驗資料庫"):
+            with get_conn() as conn:
+                conn.execute("DELETE FROM policy_benefits")
+                conn.execute("DELETE FROM policies")
+                conn.execute("DELETE FROM clients")
+                conn.commit()
+            st.success("✅ 體驗資料已清空，可重新輸入 3 筆！")
+            st.rerun()
 
     api_key = st.text_input("🔑 Gemini API Key (選填/智慧條款檢索)", type="password")
 
@@ -157,7 +168,7 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
     with tab_batch:
         if current_count >= MAX_DEMO_POLICIES:
             st.warning(f"🔒 **體驗版額度已滿（{current_count}/{MAX_DEMO_POLICIES} 筆）**\n\n目前已達到試用體驗上限 3 筆保單。如需解鎖無限保單建檔、家庭整合模型與全功能健診模組，請洽 **Jenny CFP®**。")
-            st.info("💡 提示：您可前往「🗑️ 刪除保單」分頁刪除現有測試資料後重新建立體驗。")
+            st.info("💡 提示：您可點擊左側「🔄 一鍵清空／重置體驗資料庫」或「🗑️ 刪除保單」分頁刪除資料後重新試用。")
         else:
             remaining = MAX_DEMO_POLICIES - current_count
             st.success(f"✨ 體驗版目前尚可建立 **{remaining}** 筆保單。")
@@ -363,6 +374,7 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
 
     if current_count >= MAX_DEMO_POLICIES:
         st.warning(f"🔒 **體驗版額度已滿（{current_count}/{MAX_DEMO_POLICIES} 筆）**\n\n目前已達到試用體驗上限 3 筆保單。如需解鎖車險車籍庫與無限制排程，請洽 **Jenny CFP®**。")
+        st.info("💡 提示：您可點擊左側「🔄 一鍵清空／重置體驗資料庫」刪除資料後重新試用。")
     else:
         if not clients.empty:
             c_mode = st.radio("客戶來源：", ["✍️ 直接打新客戶名字", "🔍 選擇現有客戶"], horizontal=True, key="car_c_mode")
