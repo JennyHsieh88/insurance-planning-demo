@@ -18,6 +18,27 @@ st.set_page_config(
     layout="wide"
 )
 
+# ==================== 隱藏右下角圖示、右上角 Fork 與官方選單 ====================
+st.markdown("""
+    <style>
+    .viewerBadge_container__1QSob,
+    [data-testid="stStatusWidget"],
+    .stDeployButton,
+    footer,
+    #MainMenu,
+    header {
+        visibility: hidden !important;
+        display: none !important;
+    }
+    div[class*="viewerBadge"],
+    div[class*="floatingBadge"],
+    div[data-testid="stStatusWidget"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 DB_NAME = "client_vault.db"
 MAX_DEMO_POLICIES = 3  # 體驗版最大保單上限
 
