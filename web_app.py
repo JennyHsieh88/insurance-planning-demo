@@ -109,18 +109,12 @@ def lookup_policy_code(query_str):
     if not query_str:
         return None
     q = query_str.strip().upper()
-    
-    # 1. 優先精準比對代碼 Key
     for code, data in INSURANCE_CODE_DB.items():
         if q == code or q.startswith(code + " ") or q.endswith(" " + code):
             return data
-            
-    # 2. 次要模糊比對名稱或代號
     for code, data in INSURANCE_CODE_DB.items():
         if code in q or data["policy_name"].upper() in q or q in data["policy_name"].upper():
             return data
-            
-    # 3. 中文暱稱比對
     nicknames = {
         "薰衣草": "HSA", "實在醫靠": "XHD", "實支醫靠": "XHD", "醫療費用": "XHR",
         "新住院醫療": "HNRC", "長順": "HSG", "新綜合": "HS", "真全意": "CV",
@@ -130,7 +124,6 @@ def lookup_policy_code(query_str):
     for nick, target_code in nicknames.items():
         if nick in q:
             return INSURANCE_CODE_DB.get(target_code)
-
     return None
 
 def get_conn():
@@ -155,6 +148,7 @@ def init_and_migrate_db():
             policy_no TEXT NOT NULL,
             policy_name TEXT NOT NULL,
             policy_type TEXT NOT NULL,
+            start_date TEXT,
             expiry_date TEXT,
             premium INTEGER,
             payment_method TEXT,
@@ -168,6 +162,8 @@ def init_and_migrate_db():
             policy_id INTEGER,
             category TEXT,
             sum_assured REAL,
+            sum_assured_unit TEXT DEFAULT '萬元',
+            plan_unit_name TEXT DEFAULT '',
             outpatient_limit REAL,
             has_227_clause TEXT,
             receipt_type TEXT,
@@ -176,19 +172,24 @@ def init_and_migrate_db():
         )
         """)
         
-        cursor = conn.execute("PRAGMA table_info(policy_benefits)")
-        columns = [info[1] for info in cursor.fetchall()]
-        if "outpatient_limit" not in columns:
+        cursor_p = conn.execute("PRAGMA table_info(policies)")
+        p_cols = [info[1] for info in cursor_p.fetchall()]
+        if "start_date" not in p_cols:
+            conn.execute("ALTER TABLE policies ADD COLUMN start_date TEXT DEFAULT '2023-01-01'")
+
+        cursor_b = conn.execute("PRAGMA table_info(policy_benefits)")
+        b_cols = [info[1] for info in cursor_b.fetchall()]
+        if "outpatient_limit" not in b_cols:
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN outpatient_limit REAL DEFAULT 0.0")
-        if "has_227_clause" not in columns:
+        if "has_227_clause" not in b_cols:
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN has_227_clause TEXT DEFAULT '否'")
-        if "receipt_type" not in columns:
+        if "receipt_type" not in b_cols:
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN receipt_type TEXT DEFAULT '可副本'")
-        if "clause_details" not in columns:
+        if "clause_details" not in b_cols:
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN clause_details TEXT DEFAULT ''")
-        if "sum_assured_unit" not in columns:
+        if "sum_assured_unit" not in b_cols:
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN sum_assured_unit TEXT DEFAULT '萬元'")
-        if "plan_unit_name" not in columns:
+        if "plan_unit_name" not in b_cols:
             conn.execute("ALTER TABLE policy_benefits ADD COLUMN plan_unit_name TEXT DEFAULT ''")
             
         conn.commit()
@@ -296,7 +297,6 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                     if st.button("⚡ 快速帶入條款規格"):
                         matched = lookup_policy_code(input_code)
                         if matched:
-                            # 直接將數值覆寫到 session_state 鍵值中強制同步表單
                             st.session_state["comp_0"] = matched["company"]
                             st.session_state["pname_0"] = matched["policy_name"]
                             st.session_state["ptype_0"] = matched["policy_type"]
@@ -373,7 +373,12 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                         policy_name = st.text_input(f"主附約名稱 / 代碼 * (#{i+1})", key=f"pname_{i}", placeholder="例：XHD 實在醫靠醫療健康附約 / 美利發增額終身壽險")
                         policy_type = st.selectbox(f"險種屬性 (#{i+1})", all_ptypes, key=f"ptype_{i}")
                     with col_p2:
-                        expiry_date = st.date_input(f"滿期日 / 續期應繳日 * (#{i+1})", key=f"exp_{i}")
+                        col_d1, col_d2 = st.columns(2)
+                        with col_d1:
+                            start_date = st.date_input(f"投保生效日 (判斷法規新舊制) * (#{i+1})", value=datetime(2023, 1, 1), key=f"start_{i}")
+                        with col_d2:
+                            expiry_date = st.date_input(f"滿期日 / 續期應繳日 * (#{i+1})", key=f"exp_{i}")
+                            
                         premium = st.number_input(f"年度保費 (元) (#{i+1})", min_value=0, step=1000, key=f"prem_{i}")
                         payment_method = st.selectbox(f"繳費方式 (#{i+1})", ["活存轉帳", "信用卡", "自行繳款", "躉繳", "已繳費期滿"], key=f"paym_{i}")
                         card_expiry = st.text_input(f"信用卡到期年月 (選填) (#{i+1})", placeholder="MM/YY", key=f"card_{i}")
@@ -398,8 +403,8 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                     st.markdown("---")
                     policies_data.append({
                         "company": company, "policy_no": policy_no, "policy_name": policy_name,
-                        "policy_type": policy_type, "expiry_date": expiry_date, "premium": premium,
-                        "payment_method": payment_method, "card_expiry": card_expiry,
+                        "policy_type": policy_type, "start_date": start_date, "expiry_date": expiry_date,
+                        "premium": premium, "payment_method": payment_method, "card_expiry": card_expiry,
                         "category": category, "sum_assured": sum_assured, "sum_assured_unit": unit_label,
                         "plan_unit_name": custom_plan_name, "outpatient_limit": outpatient_limit,
                         "has_227": has_227, "receipt_type": receipt_type, "clause_details": clause_details
@@ -420,9 +425,9 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                         if p["company"].strip() and p["policy_name"].strip():
                             cur = conn.cursor()
                             cur.execute("""
-                            INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, expiry_date, premium, payment_method, card_expiry)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (c_id, p["company"].strip(), p["policy_no"].strip(), p["policy_name"].strip(), p["policy_type"], p["expiry_date"].strftime("%Y-%m-%d"), p["premium"], p["payment_method"], p["card_expiry"].strip()))
+                            INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, start_date, expiry_date, premium, payment_method, card_expiry)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (c_id, p["company"].strip(), p["policy_no"].strip(), p["policy_name"].strip(), p["policy_type"], p["start_date"].strftime("%Y-%m-%d"), p["expiry_date"].strftime("%Y-%m-%d"), p["premium"], p["payment_method"], p["card_expiry"].strip()))
                             new_pid = cur.lastrowid
 
                             cur.execute("""
@@ -440,7 +445,7 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
     with tab_edit:
         q_all = """
         SELECT p.policy_id, p.client_id, c.name AS client_name, p.company, p.policy_no, 
-               p.policy_name, p.policy_type, p.expiry_date, p.premium, p.payment_method, p.card_expiry,
+               p.policy_name, p.policy_type, p.start_date, p.expiry_date, p.premium, p.payment_method, p.card_expiry,
                b.benefit_id, b.category, b.sum_assured, b.sum_assured_unit, b.plan_unit_name, b.outpatient_limit, b.has_227_clause, b.receipt_type, b.clause_details
         FROM policies p
         JOIN clients c ON p.client_id = c.client_id
@@ -468,6 +473,9 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                 with col_e2:
                     edit_pol_name = st.text_input("主附約名稱", value=row_data['policy_name'])
                     edit_type = st.text_input("險種屬性", value=row_data['policy_type'] or "")
+                    
+                    cur_sdate = pd.to_datetime(row_data['start_date']).date() if pd.notna(row_data['start_date']) else datetime(2023, 1, 1).date()
+                    edit_sdate = st.date_input("投保生效日 (新舊制法規依據)", value=cur_sdate)
                     edit_prem = st.number_input("年度保費", value=int(row_data['premium'] or 0), step=1000)
 
                 col_e3, col_e4 = st.columns(2)
@@ -487,9 +495,9 @@ if menu == "📝 壽險/全險種批次建檔 (體驗版限3筆)":
                 if st.form_submit_button("💾 儲存修改"):
                     conn.execute("UPDATE clients SET name = ? WHERE client_id = ?", (edit_name.strip(), int(row_data['client_id'])))
                     conn.execute("""
-                    UPDATE policies SET company=?, policy_no=?, policy_name=?, policy_type=?, premium=?
+                    UPDATE policies SET company=?, policy_no=?, policy_name=?, policy_type=?, start_date=?, premium=?
                     WHERE policy_id=?
-                    """, (edit_company.strip(), edit_pol_no.strip(), edit_pol_name.strip(), edit_type.strip(), edit_prem, target_pid))
+                    """, (edit_company.strip(), edit_pol_no.strip(), edit_pol_name.strip(), edit_type.strip(), edit_sdate.strftime("%Y-%m-%d"), edit_prem, target_pid))
                     
                     if pd.notna(row_data['benefit_id']):
                         conn.execute("""
@@ -599,8 +607,8 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
 
                 cur = conn.cursor()
                 cur.execute("""
-                INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, expiry_date, premium, payment_method, card_expiry)
-                VALUES (?, ?, ?, ?, '車險', ?, ?, ?, ?)
+                INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, start_date, expiry_date, premium, payment_method, card_expiry)
+                VALUES (?, ?, ?, ?, '車險', '2024-01-01', ?, ?, ?, ?)
                 """, (c_id, company.strip(), policy_no.strip(), final_plan_name.strip(), expiry_date.strftime("%Y-%m-%d"), premium, payment_method.strip(), card_expiry.strip()))
                 new_pid = cur.lastrowid
 
@@ -630,7 +638,7 @@ elif menu == "📊 精準條款健診與理賠情境試算":
 
         df_raw = pd.read_sql_query(f"""
         SELECT p.company AS '保險公司', p.policy_name AS '主附約名稱', p.policy_type AS '險種',
-               b.category AS '保障類別', b.sum_assured, b.sum_assured_unit, b.plan_unit_name,
+               p.start_date AS '生效起始日', b.category AS '保障類別', b.sum_assured, b.sum_assured_unit, b.plan_unit_name,
                b.outpatient_limit AS '門診手術限額(萬)',
                b.has_227_clause AS '限制2-2-7手術',
                b.receipt_type AS '收據規範',
@@ -656,30 +664,52 @@ elif menu == "📊 精準條款健診與理賠情境試算":
                 else:
                     return f"{val:.1f} 萬元"
 
+            def format_legal_status(row):
+                if not row['生效起始日'] or pd.isna(row['生效起始日']):
+                    return "舊制條款"
+                s_date = str(row['生效起始日'])[:10]
+                if s_date < "2024-07-01":
+                    return "🏷️ 舊制 (享副本/多倍紅利)"
+                else:
+                    return "⚖️ 新制 (損害填補/正本差額)"
+
             df_benefits = df_raw.copy()
             df_benefits['保障額度/計畫'] = df_benefits.apply(format_amount, axis=1)
-            display_cols = ['保險公司', '主附約名稱', '險種', '保障類別', '保障額度/計畫', '門診手術限額(萬)', '限制2-2-7手術', '收據規範', '詳細條款與理賠定義']
+            df_benefits['法規體制 (2024/7/1劃分)'] = df_benefits.apply(format_legal_status, axis=1)
+            
+            display_cols = ['保險公司', '主附約名稱', '險種', '法規體制 (2024/7/1劃分)', '保障額度/計畫', '門診手術限額(萬)', '限制2-2-7手術', '收據規範', '詳細條款與理賠定義']
             
             st.subheader("1. 條款核心參數一覽表")
             st.dataframe(df_benefits[display_cols], use_container_width=True)
 
-            st.subheader("2. 🔍 條款風險與爭議防呆預警")
+            st.subheader("2. 🔍 條款風險、爭議與新舊法規防呆預警")
             warnings = []
             
+            has_old_reimburse = False
+            has_new_reimburse = False
+
             for _, row in df_benefits.iterrows():
                 if "實支" in str(row['保障類別']) or "醫療" in str(row['險種']):
+                    if "舊制" in row['法規體制 (2024/7/1劃分)']:
+                        has_old_reimburse = True
+                    else:
+                        has_new_reimburse = True
+
                     if row['限制2-2-7手術'] == "是":
                         warnings.append(f"⚠️ **【2-2-7 條款限制】** {row['保險公司']} - {row['主附約名稱']}：限制健保 2-2-7 手術章節，門診 2-2-6 處置（如息肉切除、雷射）恐遭拒賠。")
                     
                     if pd.notna(row['門診手術限額(萬)']) and 0 < row['門診手術限額(萬)'] < 5:
                         warnings.append(f"⚠️ **【門診手術額度過低】** {row['保險公司']} - {row['主附約名稱']}：門診手術限額僅 **{row['門診手術限額(萬)']} 萬**，微創自費手術將產生巨額自付缺口！")
-                    
-                    if row['收據規範'] == "限正本":
-                        warnings.append(f"📌 **【收據限制】** {row['保險公司']} - {row['主附約名稱']}：要求**正本收據**，限制後續雙實支加保空間。")
+
+            if has_old_reimburse and has_new_reimburse:
+                warnings.append("💡 **【新舊雙軌實支理賠順序提醒】** 此客戶同時持有 2024/7/1 前之「舊制實支」與新制實支。理賠時務必建議客戶**優先送審新制正本保單**開立差額證明，再以**副本收據申請舊制保單**，以極大化保戶合法理賠權益！")
 
             if warnings:
                 for w in warnings:
-                    st.error(w)
+                    if "提醒" in w:
+                        st.info(w)
+                    else:
+                        st.error(w)
             else:
                 st.success("✅ 條款結構優良！未檢測出明顯的門診手術限額過低或 2-2-7 隱藏限制。")
 
@@ -712,7 +742,7 @@ elif menu == "📊 精準條款健診與理賠情境試算":
             st.markdown("---")
             df_policies = pd.read_sql_query(f"""
             SELECT company AS '保險公司', policy_no AS '保單號碼', policy_name AS '險種名稱', 
-                   policy_type AS '類別', expiry_date AS '滿期/應繳日', premium AS '保費', payment_method AS '繳費方式' 
+                   policy_type AS '類別', start_date AS '投保日', expiry_date AS '滿期/應繳日', premium AS '保費', payment_method AS '繳費方式' 
             FROM policies WHERE client_id = {selected_cid}
             """, conn)
 
