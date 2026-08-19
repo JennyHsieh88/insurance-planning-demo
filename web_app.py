@@ -447,7 +447,6 @@ if menu == "📝 主約+附約體系建檔":
             p_map = dict(zip(edit_df['client_name'] + " - " + edit_df['company'] + " (" + edit_df['policy_name'] + ")", edit_df['policy_id']))
             sel_p = st.selectbox("選擇要編輯的保單", list(p_map.keys()))
             
-            # 安全防呆篩選
             matched_rows = edit_df[edit_df['policy_id'] == p_map[sel_p]]
             if not matched_rows.empty:
                 row = matched_rows.iloc[0]
@@ -525,8 +524,8 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
                     
                     cur = conn.cursor()
                     cur.execute("""
-                    INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, pay_years, pay_frequency, max_renew_age, start_date, expiry_date, premium, payment_method, card_expiry)
-                    VALUES (?, ?, ?, ?, '車險', '車險', 1, '年繳', 99, ?, ?, ?, '信用卡', '')
+                    INSERT INTO policies (client_id, company, policy_no, policy_name, policy_type, is_main, start_date, expiry_date, premium, payment_method, card_expiry)
+                    VALUES (?, ?, ?, ?, '車險', '車險', ?, ?, ?, '信用卡', '')
                     """, (c_id, company.strip(), policy_no.strip(), final_plan_name.strip(), start_date.strftime("%Y-%m-%d"), expiry_date.strftime("%Y-%m-%d"), premium))
                     new_pid = cur.lastrowid
                     cur.execute("INSERT INTO policy_benefits (policy_id, category, sum_assured, clause_details) VALUES (?, '責任/財損', 1000, ?)", (new_pid, details))
@@ -535,16 +534,89 @@ elif menu == "🚗 新增車險 (市場常用/自訂空白框)":
     conn.close()
 
 elif menu == "📊 精準條款健診與理賠情境試算":
-    st.header("📊 條款健診")
+    st.header("📊 客戶保單條款深度健診與精準缺口分析")
     conn = get_conn()
-    clients = pd.read_sql_query("SELECT client_id, name FROM clients", conn)
-    if clients.empty: st.info("目前無客戶資料。")
+    clients = pd.read_sql_query("SELECT client_id, name, birth_date FROM clients", conn)
+
+    if clients.empty:
+        st.warning("⚠️ 目前無客戶資料，請先新增保單與條款。")
     else:
-        c_dict = dict(zip(clients['name'], clients['client_id']))
-        sel_c = st.selectbox("選擇客戶", list(c_dict.keys()))
-        df = pd.read_sql_query(f"SELECT p.company, p.policy_no, p.is_main, p.policy_name, b.category, b.sum_assured FROM policies p JOIN policy_benefits b ON p.policy_id = b.policy_id WHERE p.client_id = {c_dict[sel_c]}", conn)
-        if df.empty: st.info("該客戶尚無保單細項。")
-        else: st.dataframe(df, use_container_width=True)
+        client_dict = dict(zip(clients['name'] + " (ID: " + clients['client_id'].astype(str) + ")", clients['client_id']))
+        selected_label = st.selectbox("請選擇要進行精準分析的客戶：", list(client_dict.keys()))
+        selected_cid = client_dict[selected_label]
+        selected_name = selected_label.split(" (ID:")[0]
+
+        client_info = clients[clients['client_id'] == selected_cid].iloc[0]
+        c_age_str = "未知"
+        if pd.notna(client_info['birth_date']):
+            bdate_obj = pd.to_datetime(client_info['birth_date']).date()
+            c_age_str = f"{calculate_age(bdate_obj)} 歲 ({client_info['birth_date']})"
+
+        st.info(f"👤 **受診客戶**：{selected_name} ｜ 🎂 **年齡與生日**：{c_age_str}")
+
+        # 修正這裡：使用 LEFT JOIN 確保即便有些保單沒有 benefits 細項也能完整撈出
+        df_raw = pd.read_sql_query(f"""
+        SELECT p.company AS '保險公司', p.policy_no AS '保單號碼', p.is_main AS '架構', p.policy_name AS '主附約名稱', p.policy_type AS '險種',
+               p.start_date AS '生效起始日', p.next_due_date AS '下次續期繳費日', p.expiry_date AS '保障滿期日',
+               COALESCE(b.category, '綜合保障') AS '保障類別', 
+               COALESCE(b.sum_assured, 0.0) AS sum_assured, 
+               COALESCE(b.sum_assured_unit, '萬元') AS sum_assured_unit, 
+               COALESCE(b.plan_unit_name, '') AS plan_unit_name,
+               COALESCE(b.outpatient_limit, 0.0) AS '門診手術限額(萬)',
+               COALESCE(b.has_227_clause, '不適用') AS '限制2-2-7手術',
+               COALESCE(b.receipt_type, '不適用') AS '收據規範',
+               COALESCE(b.clause_details, '') AS '詳細條款與理賠定義'
+        FROM policies p
+        LEFT JOIN policy_benefits b ON p.policy_id = b.policy_id
+        WHERE p.client_id = {selected_cid}
+        ORDER BY p.policy_no, p.is_main DESC
+        """, conn)
+
+        if df_raw.empty:
+            st.info("該客戶尚無保單細項。")
+        else:
+            def format_amount(row):
+                unit = str(row['sum_assured_unit'] or "萬元")
+                val = row['sum_assured'] or 0.0
+                plan = str(row['plan_unit_name'] or "").strip()
+                if "計畫" in unit:
+                    return f"計畫 {val:.0f} ({plan})" if plan else f"計畫 {val:.0f}"
+                elif "元/日" in unit:
+                    return f"{val:,.0f} 元/日"
+                elif "單位" in unit:
+                    return f"{val:.0f} 單位"
+                else:
+                    return f"{val:.1f} 萬元"
+
+            def format_legal_status(row):
+                if not row['生效起始日'] or pd.isna(row['生效起始日']):
+                    return "舊制條款"
+                s_date = str(row['生效起始日'])[:10]
+                if s_date < REGULATION_CUTOFF_DATE:
+                    return "🏷️ 舊制 (享副本/多倍紅利)"
+                else:
+                    return "⚖️ 新制 (損害填補/正本差額)"
+
+            df_benefits = df_raw.copy()
+            df_benefits['保障額度/計畫'] = df_benefits.apply(format_amount, axis=1)
+            df_benefits['法規體制 (2024/7/1劃分)'] = df_benefits.apply(format_legal_status, axis=1)
+
+            display_cols = ['保險公司', '架構', '主附約名稱', '下次續期繳費日', '保障滿期日', '法規體制 (2024/7/1劃分)', '保障額度/計畫', '門診手術限額(萬)', '限制2-2-7手術', '收據規範', '詳細條款與理賠定義']
+
+            st.subheader("1. 條款核心參數一覽表")
+            st.dataframe(df_benefits[display_cols], use_container_width=True)
+
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_benefits[display_cols].to_excel(writer, sheet_name='精準條款健診與缺口', index=False)
+            excel_data = output.getvalue()
+
+            st.download_button(
+                label=f"📥 下載【{selected_name}】精準條款健診 Excel 報告",
+                data=excel_data,
+                file_name=f"精準條款健診報告_{selected_name}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
     conn.close()
 
 elif menu == "🔔 續期/車險到期排程儀表板":
