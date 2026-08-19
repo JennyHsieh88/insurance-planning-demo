@@ -18,23 +18,29 @@ st.set_page_config(
     layout="wide"
 )
 
-# ==================== 隱藏右下角圖示、右上角 Fork 與官方選單 ====================
+# ==================== 強力隱藏官方工具、徽章與選單 ====================
 st.markdown("""
     <style>
-    .viewerBadge_container__1QSob,
-    [data-testid="stStatusWidget"],
-    .stDeployButton,
-    footer,
-    #MainMenu,
-    header {
+    /* 隱藏頂部選單、頁尾、Fork、Header */
+    #MainMenu, footer, header, .stDeployButton {
         visibility: hidden !important;
         display: none !important;
     }
+    
+    /* 徹底隱藏右下角所有懸浮小工具與 Viewer 徽章 */
+    [data-testid="stStatusWidget"],
+    .viewerBadge_container__1QSob,
     div[class*="viewerBadge"],
     div[class*="floatingBadge"],
-    div[data-testid="stStatusWidget"] {
-        display: none !important;
+    div[class*="ProfilePagePreview"],
+    div[class*="manageApp"],
+    div[data-testid="stToolbar"] {
         visibility: hidden !important;
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -152,7 +158,7 @@ with st.sidebar:
     total_existing = get_total_policy_count()
     st.info(f"💡 **系統體驗版**\n- 目前已建檔保單：**{total_existing} / {MAX_DEMO_POLICIES}** 筆\n- 體驗版開放上限為 3 筆")
 
-    # 貼心功能：一鍵重置清空體驗資料庫
+    # 一鍵重置清空體驗資料庫
     if total_existing > 0:
         if st.button("🔄 一鍵清空／重置體驗資料庫"):
             with get_conn() as conn:
@@ -598,7 +604,7 @@ elif menu == "🔔 續期/車險到期排程儀表板":
     conn.close()
 
     if df.empty:
-        st.info("💡 目前尚無保單資料。")
+        st.info("💡 目前尚外保單資料。")
     else:
         today = datetime.now().date()
         df['到期/應繳日'] = pd.to_datetime(df['到期/應繳日']).dt.date
