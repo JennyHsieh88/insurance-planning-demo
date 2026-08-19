@@ -30,7 +30,6 @@ DB_NAME = "client_vault.db"
 MAX_DEMO_POLICIES = 3  # 體驗版上限 3 筆
 REGULATION_CUTOFF_DATE = "2024-07-01"
 
-# 台灣主要壽險公司的主力主約與附約商品清單庫
 COMPANY_PRODUCTS_DB = {
     "全球人壽": {
         "mains": ["QWX 終身壽險", "DCE 醫卡讚重大傷病終身健康保險", "QTL 幸福定期壽險", "XDJ 臻愛久久重大傷病定期健康保險", "XTG 臻愛久久防癌終身健康保險", "美利發增額終身壽險", "✍️ 自行輸入其他商品/代碼"],
@@ -157,40 +156,15 @@ def init_and_migrate_db():
         )
         """)
         
-        cursor_c = conn.execute("PRAGMA table_info(clients)")
-        c_cols = [info[1] for info in cursor_c.fetchall()]
-        if "birth_date" not in c_cols:
-            conn.execute("ALTER TABLE clients ADD COLUMN birth_date TEXT DEFAULT '1990-01-01'")
-
+        # 自動補齊缺失欄位
         cursor_p = conn.execute("PRAGMA table_info(policies)")
         p_cols = [info[1] for info in cursor_p.fetchall()]
-        if "start_date" not in p_cols:
-            conn.execute("ALTER TABLE policies ADD COLUMN start_date TEXT DEFAULT '2023-01-01'")
-        if "is_main" not in p_cols:
-            conn.execute("ALTER TABLE policies ADD COLUMN is_main TEXT DEFAULT '👑 主約'")
-        if "pay_years" not in p_cols:
-            conn.execute("ALTER TABLE policies ADD COLUMN pay_years INTEGER DEFAULT 20")
-        if "pay_frequency" not in p_cols:
-            conn.execute("ALTER TABLE policies ADD COLUMN pay_frequency TEXT DEFAULT '年繳'")
+        if "card_expiry" not in p_cols:
+            conn.execute("ALTER TABLE policies ADD COLUMN card_expiry TEXT DEFAULT ''")
+        if "payment_method" not in p_cols:
+            conn.execute("ALTER TABLE policies ADD COLUMN payment_method TEXT DEFAULT '信用卡'")
         if "next_due_date" not in p_cols:
             conn.execute("ALTER TABLE policies ADD COLUMN next_due_date TEXT DEFAULT ''")
-        if "max_renew_age" not in p_cols:
-            conn.execute("ALTER TABLE policies ADD COLUMN max_renew_age INTEGER DEFAULT 80")
-
-        cursor_b = conn.execute("PRAGMA table_info(policy_benefits)")
-        b_cols = [info[1] for info in cursor_b.fetchall()]
-        if "outpatient_limit" not in b_cols:
-            conn.execute("ALTER TABLE policy_benefits ADD COLUMN outpatient_limit REAL DEFAULT 0.0")
-        if "has_227_clause" not in b_cols:
-            conn.execute("ALTER TABLE policy_benefits ADD COLUMN has_227_clause TEXT DEFAULT '否'")
-        if "receipt_type" not in b_cols:
-            conn.execute("ALTER TABLE policy_benefits ADD COLUMN receipt_type TEXT DEFAULT '可副本'")
-        if "clause_details" not in b_cols:
-            conn.execute("ALTER TABLE policy_benefits ADD COLUMN clause_details TEXT DEFAULT ''")
-        if "sum_assured_unit" not in b_cols:
-            conn.execute("ALTER TABLE policy_benefits ADD COLUMN sum_assured_unit TEXT DEFAULT '萬元'")
-        if "plan_unit_name" not in b_cols:
-            conn.execute("ALTER TABLE policy_benefits ADD COLUMN plan_unit_name TEXT DEFAULT ''")
             
         conn.commit()
 
@@ -661,7 +635,7 @@ elif menu == "🔔 續期/車險排程":
             life_df = df[(df['險種分類'] != '車險') & (df['架構'] != '📎 附約')]
             st.dataframe(life_df[['客戶姓名', '電話', '保險公司', '保單號碼', '險種名稱', '下次繳費日', '保費', '繳費方式']], use_container_width=True)
         with tab_car:
-            car_df = df[df['險種分類'] == '车險'] if '车險' in df['險種分類'].values else df[df['險種分類'] == '車險']
+            car_df = df[df['險種分類'] == '車險']
             st.dataframe(car_df[['客戶姓名', '電話', '保險公司', '保單號碼', '險種名稱', '到期日', '保費', '繳費方式']], use_container_width=True)
 
 elif menu == "👥 客戶管理":
